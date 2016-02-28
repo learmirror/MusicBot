@@ -128,18 +128,13 @@ class MusicBot(discord.Client):
             await voice_client.connect()
             return voice_client
 
-    async def get_player(self, channel, author, create=False): #X4: Added author for use his id
-        global landconf #X4: Use language mode
-        if author is not None: #X4: For first run on_ready does not have author, because it called as server
-            lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
-        else: #X4: Else for author == None
-            lang = self.config.server_language_mode #X4: So use server settings for run
+    async def get_player(self, channel, create=False): #X4: Added author for use his id
 
         server = channel.server
 
         if server.id not in self.players:
             if not create:
-                raise CommandError('%s %s%s' % (self.dialogue.get(lang, 'Dialog_NoSummonedA', fallback='Player does not exist. It has not been summoned yet into a voice channel.\nUse').replace(u'\x5cn', '\n'), self.config.command_prefix, self.dialogue.get(lang, 'Dialog_NoSummonedB', fallback='summon to summon it to your voice channel.').replace(u'\x5cn', '\n'))) #X4: Translated
+                raise CommandError('%s %s%s' % (self.dialogue.get(self.config.server_language_mode, 'Dialog_NoSummonedA', fallback='Player does not exist. It has not been summoned yet into a voice channel.\nUse').replace(u'\x5cn', '\n'), self.config.command_prefix, self.dialogue.get(self.config.server_language_mode, 'Dialog_NoSummonedB', fallback='summon to summon it to your voice channel.').replace(u'\x5cn', '\n'))) #X4: Translated
 
             voice_client = await self.get_voice_client(channel)
 
@@ -283,9 +278,7 @@ class MusicBot(discord.Client):
             as_ok = await self._auto_summon()
 
             if self.config.auto_playlist and as_ok:
-                #a = Author() #a = Author(id='000000000000000000')
-                #a.id = '000000000000000000'
-                await self.on_finished_playing(await self.get_player(self._get_owner_voice_channel(), author=None)) #X4: Added author, because it needed to use in multilanguage system ERROR if chanel not avaiable
+                await self.on_finished_playing(await self.get_player(self._get_owner_voice_channel()))
 
 
     # TODO: autosummon option to a specific channel
@@ -962,7 +955,7 @@ class MusicBot(discord.Client):
         #     await self.move_member(channel.server.me, channel)
         #     return Response('ok?')
 
-        player = await self.get_player(channel, author, create=True)
+        player = await self.get_player(channel, create=True)
 
         if player.is_stopped:
             player.play()
@@ -1089,7 +1082,7 @@ class MusicBot(discord.Client):
         global landconf #X4: Use language mode
         lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
 
-        player = await self.get_player(message.channel, author)
+        player = await self.get_player(message.channel)
 
         if not new_volume:
             return Response('%s `%s%%`' % (self.dialogue.get(lang, 'Dialog_NewVolumeA', fallback='Current volume:').replace(u'\x5cn', '\n'), int(player.volume * 100)), reply=True, delete_after=10) #X4: Translated
@@ -1129,7 +1122,7 @@ class MusicBot(discord.Client):
         global landconf #X4: Use language mode
         lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
 
-        player = await self.get_player(channel, author) #X4: Added author for use his id
+        player = await self.get_player(channel)
 
         lines = []
         unlisted = 0
@@ -1179,7 +1172,7 @@ class MusicBot(discord.Client):
         global landconf #X4: Use language mode
         lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
 
-        player = await self.get_player(channel, author) #X4: Added author for use his id
+        player = await self.get_player(channel)
 
         lines = []
         unlisted = 0
@@ -1237,7 +1230,7 @@ class MusicBot(discord.Client):
         global landconf #X4: Use language mode
         lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
 
-        player = await self.get_player(channel, author) #X4: Initialize player
+        player = await self.get_player(channel) #X4: Initialize player
 
         if player.current_entry.url in self.backuplist: #X4: Check that URL not exist in our playlist
             self.backuplist.remove(player.current_entry.url) #X4: Remove URL from autoplaylist (because it don't interesting or trash or too long or else...)
@@ -1255,7 +1248,7 @@ class MusicBot(discord.Client):
         global landconf #X4: Use language mode
         lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
 
-        player = await self.get_player(channel, author) #X4: Initialize player
+        player = await self.get_player(channel) #X4: Initialize player
 
         if player.current_entry.url in self.backuplist: #X4: Check that URL not exist in our playlist
             self.backuplist.remove(player.current_entry.url) #X4: Remove URL from autoplaylist (because it don't interesting or trash or too long or else...)
@@ -1281,7 +1274,7 @@ class MusicBot(discord.Client):
         global landconf #X4: Use language mode
         lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
 
-        player = await self.get_player(channel, author) #X4: Initialize player
+        player = await self.get_player(channel) #X4: Initialize player
 
         if player.current_entry.url not in self.backuplist: #X4: Check that URL not exist in our playlist
             self.backuplist.append(player.current_entry.url) #X4: Add URL in our playlist
@@ -1299,7 +1292,7 @@ class MusicBot(discord.Client):
         global landconf #X4: Use language mode
         lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
 
-        player = await self.get_player(channel, author) #X4: Initialize player
+        player = await self.get_player(channel) #X4: Initialize player
 
         if player.current_entry.url not in self.backuplist: #X4: Check that URL not exist in our playlist
             self.backuplist.append(player.current_entry.url) #X4: Add URL in our playlist
@@ -1463,7 +1456,7 @@ class MusicBot(discord.Client):
                 handler_kwargs['author'] = message.author
 
             if params.pop('player', None):
-                handler_kwargs['player'] = await self.get_player(message.channel, message.author) #X4: Added author argument for use his id
+                handler_kwargs['player'] = await self.get_player(message.channel)
 
             args_expected = []
             for key, param in list(params.items()):
