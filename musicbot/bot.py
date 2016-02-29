@@ -35,9 +35,9 @@ VERSION = '2.0'
 
 load_opus_lib()
 
-undoentry = None #X4: Used for undo tracks
-langconf = configparser.ConfigParser() #X4: Define new ConfigParser element
-langconf.readfp(codecs.open('config/userlang.txt', "r", "utf8")) #X4: Read our config as UTF-8-file
+undoentry = None
+langconf = configparser.ConfigParser()
+langconf.readfp(codecs.open('config/userlang.txt', "r", "utf8"))
 
 class SkipState(object):
     def __init__(self):
@@ -74,19 +74,19 @@ class MusicBot(discord.Client):
         self.blacklist = set(map(int, load_file(self.config.blacklist_file)))
         self.whitelist = set(map(int, load_file(self.config.whitelist_file)))
         self.backuplist = load_file(self.config.backup_playlist_file)
-        self.userlang = load_file(self.config.user_language_file) #X4: Load language file (id=language)
+        self.userlang = load_file(self.config.user_language_file)
 
         self.last_np_msg = None
         
-        self.dialogue = configparser.ConfigParser() #X4: Define new ConfigParser element
-        self.dialogue.readfp(codecs.open('config/lang.txt', "r", "utf8")) #X4: Read dialogue file as UTF-8-file because translated on many languages
+        self.dialogue = configparser.ConfigParser()
+        self.dialogue.readfp(codecs.open('config/lang.txt', "r", "utf8"))
 
     async def get_voice_client(self, channel):
         if isinstance(channel, Object):
             channel = self.get_channel(channel.id)
 
         if getattr(channel, 'type', ChannelType.text) != ChannelType.voice:
-            raise AttributeError('%s' % self.dialogue.get(self.config.server_language_mode, 'Dialog_ChannelIsText', fallback='Channel passed must be a voice channel')) #X4: Translated
+            raise AttributeError('%s' % self.dialogue.get(self.config.server_language_mode, 'Dialog_ChannelIsText', fallback='Channel passed must be a voice channel'))
 
         with await self.voice_client_connect_lock:
             server = channel.server
@@ -128,13 +128,13 @@ class MusicBot(discord.Client):
             await voice_client.connect()
             return voice_client
 
-    async def get_player(self, channel, create=False): #X4: Added author for use his id
+    async def get_player(self, channel, create=False):
 
         server = channel.server
 
         if server.id not in self.players:
             if not create:
-                raise CommandError('%s %s%s' % (self.dialogue.get(self.config.server_language_mode, 'Dialog_NoSummonedA', fallback='Player does not exist. It has not been summoned yet into a voice channel.\nUse').replace(u'\x5cn', '\n'), self.config.command_prefix, self.dialogue.get(self.config.server_language_mode, 'Dialog_NoSummonedB', fallback='summon to summon it to your voice channel.').replace(u'\x5cn', '\n'))) #X4: Translated
+                raise CommandError('%s %s%s' % (self.dialogue.get(self.config.server_language_mode, 'Dialog_NoSummonedA', fallback='Player does not exist. It has not been summoned yet into a voice channel.\nUse').replace(u'\x5cn', '\n'), self.config.command_prefix, self.dialogue.get(self.config.server_language_mode, 'Dialog_NoSummonedB', fallback='summon to summon it to your voice channel.').replace(u'\x5cn', '\n')))
 
             voice_client = await self.get_voice_client(channel)
 
@@ -155,9 +155,9 @@ class MusicBot(discord.Client):
         
         self.update_now_playing(entry)
         player.skip_state.reset()
-        if entry.url not in self.backuplist: #X4: Check that URL not exist in our playlist
-            self.backuplist.append(entry.url.replace("http://", "https://")) #X4: Add URL in our playlist
-            write_file(self.config.backup_playlist_file, self.backuplist) #X4: Save and close file backuplist.txt (with new track)
+        if entry.url not in self.backuplist:
+            self.backuplist.append(entry.url.replace("http://", "https://"))
+            write_file(self.config.backup_playlist_file, self.backuplist)
 
         channel = entry.meta.get('channel', None)
         author = entry.meta.get('author', None)
@@ -173,10 +173,10 @@ class MusicBot(discord.Client):
 
             if self.config.now_playing_mentions:
                 newmsg = '%s - %s **%s** %s %s!' % (
-                    entry.meta['author'].mention, self.dialogue.get(self.config.server_language_mode, 'Dialog_NowPlayingMentionsA', fallback='your song'), entry.title, self.dialogue.get(self.config.server_language_mode, 'Dialog_NowPlayingMentionsB', fallback='is now playing in'), player.voice_client.channel.name) #X4: Translated
+                    entry.meta['author'].mention, self.dialogue.get(self.config.server_language_mode, 'Dialog_NowPlayingMentionsA', fallback='your song'), entry.title, self.dialogue.get(self.config.server_language_mode, 'Dialog_NowPlayingMentionsB', fallback='is now playing in'), player.voice_client.channel.name)
             else:
                 newmsg = '%s %s: **%s**' % (
-                    self.dialogue.get(self.config.server_language_mode, 'Dialog_NowPlayingIn', fallback='Now playing in'), player.voice_client.channel.name, entry.title) #X4: Translated
+                    self.dialogue.get(self.config.server_language_mode, 'Dialog_NowPlayingIn', fallback='Now playing in'), player.voice_client.channel.name, entry.title)
 
             if self.last_np_msg:
                 self.last_np_msg = await self.edit_message(self.last_np_msg, newmsg)
@@ -230,7 +230,7 @@ class MusicBot(discord.Client):
         print("%s %s" % (self.dialogue.get(self.config.server_language_mode, 'Dialog_AutosummonCheck', fallback='Autosummon is'), [self.dialogue.get(self.config.server_language_mode, 'Dialog_disabled', fallback='disabled'), self.dialogue.get(self.config.server_language_mode, 'Dialog_enabled', fallback='enabled')][self.config.auto_summon]))
         print("%s %s" % (self.dialogue.get(self.config.server_language_mode, 'Dialog_AutoPlListCheck', fallback='Auto-playlist is'), [self.dialogue.get(self.config.server_language_mode, 'Dialog_disabled', fallback='disabled'), self.dialogue.get(self.config.server_language_mode, 'Dialog_enabled', fallback='enabled')][self.config.auto_playlist]))
         print("%s %s %s" % (self.dialogue.get(self.config.server_language_mode, 'Dialog_SongSaveCheckA', fallback='Downloaded songs will be'), [self.dialogue.get(self.config.server_language_mode, 'Dialog_deleted', fallback='deleted'), self.dialogue.get(self.config.server_language_mode, 'Dialog_saved', fallback='saved')][self.config.save_videos], self.dialogue.get(self.config.server_language_mode, 'Dialog_SongSaveCheckB', fallback='after playback')))
-        print("Default language mode is \"%s\" (this message on English for DEBUG)" % self.config.server_language_mode) #X4: Add notification in console about default language.
+        print("Default language mode is \"%s\" (this message on English for DEBUG)" % self.config.server_language_mode)
         print()
 
         if self.servers:
@@ -288,8 +288,7 @@ class MusicBot(discord.Client):
             await self.handle_summon(channel, discord.Object(id=str(self.config.owner_id)))
             return True
         else:
-            print("%s" % self.dialogue.get(self.config.server_language_mode, 'Dialog_Owner404', fallback='Owner not found in a voice channel, could not autosummon.')) #X4: Translated
-            #print("Owner not found in a voice channel, could not autosummon.")
+            print("%s" % self.dialogue.get(self.config.server_language_mode, 'Dialog_Owner404', fallback='Owner not found in a voice channel, could not autosummon.'))
             return False
 
     def _get_owner_voice_channel(self):
@@ -302,15 +301,15 @@ class MusicBot(discord.Client):
         return ('{:.%sf}' % dp).format(x).rstrip('0').rstrip('.')
 
 
-    async def handle_help(self, author): #X4: Added author for use his id
+    async def handle_help(self, author):
         """
         Usage: {command_prefix}help
         Prints a help message
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
-        helpmsg = "**%s**\n```" % self.dialogue.get(lang, 'Dialog_Commands', fallback='Commands') #X4: Translated
+        helpmsg = "**%s**\n```" % self.dialogue.get(lang, 'Dialog_Commands', fallback='Commands')
         commands = []
 
         # TODO: Get this to format nicely
@@ -325,63 +324,63 @@ class MusicBot(discord.Client):
 
         return Response(helpmsg, reply=True, delete_after=60)
 
-    async def handle_whitelist(self, author, message, option, username): #X4: Added author for use his id
+    async def handle_whitelist(self, author, message, option, username):
         """
         Usage: {command_prefix}whitelist [ + | - | add | remove ] @UserName
         Adds or removes the user to the whitelist. When the whitelist is enabled,
         whitelisted users are permitted to use bot commands.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         if message.author.id != self.config.owner_id:
             return
 
         user_id = extract_user_id(username)
         if not user_id:
-            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_InvalidUser', fallback='Invalid user specified')) #X4: Translated
+            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_InvalidUser', fallback='Invalid user specified'))
 
         if option not in ['+', '-', 'add', 'remove']:
-            raise CommandError('%s "%s" %s' % (self.dialogue.get(lang, 'Dialog_InvalidOptionA', fallback='Invalid option'), option, self.dialogue.get(lang, 'Dialog_InvalidOptionB', fallback='specified, use +, -, add, or remove'))) #X4: Translated
+            raise CommandError('%s "%s" %s' % (self.dialogue.get(lang, 'Dialog_InvalidOptionA', fallback='Invalid option'), option, self.dialogue.get(lang, 'Dialog_InvalidOptionB', fallback='specified, use +, -, add, or remove')))
 
         if option in ['+', 'add']:
             self.whitelist.add(user_id)
             write_file('./config/whitelist.txt', self.whitelist)
 
-            return Response('%s' % self.dialogue.get(lang, 'Dialog_AddedWhitelist', fallback='user has been added to the whitelist'), reply=True, delete_after=10) #X4: Translated
+            return Response('%s' % self.dialogue.get(lang, 'Dialog_AddedWhitelist', fallback='user has been added to the whitelist'), reply=True, delete_after=10)
 
         else:
             if user_id not in self.whitelist:
-                return Response('%s' % self.dialogue.get(lang, 'Dialog_NotInWhitelist', fallback='user is not in the whitelist'), reply=True, delete_after=10) #X4: Translated
+                return Response('%s' % self.dialogue.get(lang, 'Dialog_NotInWhitelist', fallback='user is not in the whitelist'), reply=True, delete_after=10)
 
             else:
                 self.whitelist.remove(user_id)
                 write_file('./config/whitelist.txt', self.whitelist)
 
-                return Response('%s' % self.dialogue.get(lang, 'Dialog_RemovedFromWhitelist', fallback='user has been removed from the whitelist'), reply=True, delete_after=10) #X4: Translated
+                return Response('%s' % self.dialogue.get(lang, 'Dialog_RemovedFromWhitelist', fallback='user has been removed from the whitelist'), reply=True, delete_after=10)
 
 
-    async def handle_blacklist(self, author, message, option, username): #X4: Added author for use his id
+    async def handle_blacklist(self, author, message, option, username):
         """
         Usage: {command_prefix}blacklist [ + | - | add | remove ] @UserName
         Adds or removes the user to the blacklist. Blacklisted users are forbidden from
         using bot commands. Blacklisting a user also removes them from the whitelist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         if message.author.id != self.config.owner_id:
             return
 
         user_id = extract_user_id(username)
         if not user_id:
-            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_InvalidUser', fallback='Invalid user specified')) #X4: Translated
+            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_InvalidUser', fallback='Invalid user specified'))
 
         if str(user_id) == self.config.owner_id:
-            return Response("%s" % self.dialogue.get(lang, 'Dialog_OwnerToBL', fallback='The owner cannot be blacklisted.'), delete_after=10) #X4: Translated
+            return Response("%s" % self.dialogue.get(lang, 'Dialog_OwnerToBL', fallback='The owner cannot be blacklisted.'), delete_after=10)
 
         if option not in ['+', '-', 'add', 'remove']:
-            raise CommandError('%s "%s" %s' % (self.dialogue.get(lang, 'Dialog_InvalidOptionA', fallback='Invalid option'), option, self.dialogue.get(lang, 'Dialog_InvalidOptionB', fallback='specified, use +, -, add, or remove'))) #X4: Translated
+            raise CommandError('%s "%s" %s' % (self.dialogue.get(lang, 'Dialog_InvalidOptionA', fallback='Invalid option'), option, self.dialogue.get(lang, 'Dialog_InvalidOptionB', fallback='specified, use +, -, add, or remove')))
 
         if option in ['+', 'add']:
             self.blacklist.add(user_id)
@@ -390,20 +389,20 @@ class MusicBot(discord.Client):
             if user_id in self.whitelist:
                 self.whitelist.remove(user_id)
                 write_file('./config/whitelist.txt', self.whitelist)
-                return Response('%s' % self.dialogue.get(lang, 'Dialog_RemovedFromBLToWL', fallback='user has been added to the blacklist and removed from the whitelist'), reply=True, delete_after=10) #X4: Translated
+                return Response('%s' % self.dialogue.get(lang, 'Dialog_RemovedFromBLToWL', fallback='user has been added to the blacklist and removed from the whitelist'), reply=True, delete_after=10)
 
             else:
-                return Response('%s' % self.dialogue.get(lang, 'Dialog_AddedBlacklist', fallback='user has been added to the blacklist'), reply=True, delete_after=10) #X4: Translated
+                return Response('%s' % self.dialogue.get(lang, 'Dialog_AddedBlacklist', fallback='user has been added to the blacklist'), reply=True, delete_after=10)
 
         else:
             if user_id not in self.blacklist:
-                return Response('%s' % self.dialogue.get(lang, 'Dialog_NotInBL', fallback='user is not in the blacklist'), reply=True, delete_after=10) #X4: Translated
+                return Response('%s' % self.dialogue.get(lang, 'Dialog_NotInBL', fallback='user is not in the blacklist'), reply=True, delete_after=10)
 
             else:
                 self.blacklist.remove(user_id)
                 write_file('./config/blacklist.txt', self.blacklist)
 
-                return Response('%s' % self.dialogue.get(lang, 'Dialog_RemovedFromBlacklist', fallback='user has been removed from the blacklist'), reply=True, delete_after=10) #X4: Translated
+                return Response('%s' % self.dialogue.get(lang, 'Dialog_RemovedFromBlacklist', fallback='user has been removed from the blacklist'), reply=True, delete_after=10)
 
 
     async def handle_id(self, author):
@@ -411,38 +410,38 @@ class MusicBot(discord.Client):
         Usage: {command_prefix}id
         Tells the user their id.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
-        return Response('%s `%s`' % (self.dialogue.get(lang, 'Dialog_YourID', fallback='your id is'), author.id), reply=True) #X4: Translated
+        return Response('%s `%s`' % (self.dialogue.get(lang, 'Dialog_YourID', fallback='your id is'), author.id), reply=True)
 
-    async def handle_joinserver(self, author, message, server_link): #X4: Added author for use his id
+    async def handle_joinserver(self, author, message, server_link):
         """
         Usage {command_prefix}joinserver [Server Link]
         Asks the bot to join a server. [todo: add info about if it breaks or whatever]
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         try:
             if message.author.id == self.config.owner_id:
                 await self.accept_invite(server_link)
 
         except:
-            raise CommandError('%s:\n{}\n'.format(server_link) % self.dialogue.get(lang, 'Dialog_InvalidJoin', fallback='Invalid URL provided')) #X4: Translated
+            raise CommandError('%s:\n{}\n'.format(server_link) % self.dialogue.get(lang, 'Dialog_InvalidJoin', fallback='Invalid URL provided'))
 
     async def handle_play(self, player, channel, author, song_url):
         """
         Usage {command_prefix}play [song link]
         Adds the song to the playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         try:
             await self.send_typing(channel)
 
-            reply_text = "%s **%s** %s %s" #X4: Move text to translation
+            reply_text = "%s **%s** %s %s"
 
             info = await extract_info(player.playlist.loop, song_url, download=False, process=False)
 
@@ -466,7 +465,7 @@ class MusicBot(discord.Client):
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoA', fallback='Gathering playlist information for').replace(u'\x5cn', '\n'),
                         num_songs,
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoB', fallback='songs').replace(u'\x5cn', '\n'),
-                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.')) #X4: Translated
+                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.'))
 
                 # We don't have a pretty way of doing this yet.  We need either a loop
                 # that sends these every 10 seconds or a nice context manager.
@@ -490,7 +489,7 @@ class MusicBot(discord.Client):
                     ttime/listlen - wait_per_song,
                     self.dialogue.get(lang, 'Dialog_PlaylistNotifyE', fallback='/song from expected').replace(u'\x5cn', '\n'),
                     self._fixg(wait_per_song*num_songs),
-                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n')) #X4: Translated
+                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n'))
                 )
 
                 await self.delete_message(procmesg)
@@ -505,14 +504,14 @@ class MusicBot(discord.Client):
                 reply_text = reply_text % (entry.title, position)
             else:
                 reply_text += ' %s %s'
-                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until) #X4: Translated
+                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until)
                 # TODO: Subtract time the current song has been playing for
 
             return Response(reply_text, reply=True, delete_after=15)
 
         except Exception as e:
             traceback.print_exc()
-            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n')))
 
     # X4: Additional functions as link
     async def handle_p(self, player, channel, author, song_url):
@@ -520,13 +519,13 @@ class MusicBot(discord.Client):
         Usage {command_prefix}p [song link]
         Adds the song to the playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         try:
             await self.send_typing(channel)
 
-            reply_text = "%s **%s** %s %s" #X4: Move text to translation
+            reply_text = "%s **%s** %s %s"
 
             info = await extract_info(player.playlist.loop, song_url, download=False, process=False)
 
@@ -550,7 +549,7 @@ class MusicBot(discord.Client):
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoA', fallback='Gathering playlist information for').replace(u'\x5cn', '\n'),
                         num_songs,
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoB', fallback='songs').replace(u'\x5cn', '\n'),
-                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.')) #X4: Translated
+                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.'))
 
                 # We don't have a pretty way of doing this yet.  We need either a loop
                 # that sends these every 10 seconds or a nice context manager.
@@ -574,7 +573,7 @@ class MusicBot(discord.Client):
                     ttime/listlen - wait_per_song,
                     self.dialogue.get(lang, 'Dialog_PlaylistNotifyE', fallback='/song from expected').replace(u'\x5cn', '\n'),
                     self._fixg(wait_per_song*num_songs),
-                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n')) #X4: Translated
+                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n'))
                 )
 
                 await self.delete_message(procmesg)
@@ -589,27 +588,27 @@ class MusicBot(discord.Client):
                 reply_text = reply_text % (entry.title, position)
             else:
                 reply_text += ' %s %s'
-                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until) #X4: Translated
+                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until)
                 # TODO: Subtract time the current song has been playing for
 
             return Response(reply_text, reply=True, delete_after=15)
 
         except Exception as e:
             traceback.print_exc()
-            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n')))
 
     async def handle_add(self, player, channel, author, song_url):
         """
         Usage {command_prefix}add [song link]
         Adds the song to the playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         try:
             await self.send_typing(channel)
 
-            reply_text = "%s **%s** %s %s" #X4: Move text to translation
+            reply_text = "%s **%s** %s %s"
 
             info = await extract_info(player.playlist.loop, song_url, download=False, process=False)
 
@@ -633,7 +632,7 @@ class MusicBot(discord.Client):
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoA', fallback='Gathering playlist information for').replace(u'\x5cn', '\n'),
                         num_songs,
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoB', fallback='songs').replace(u'\x5cn', '\n'),
-                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.')) #X4: Translated
+                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.'))
 
                 # We don't have a pretty way of doing this yet.  We need either a loop
                 # that sends these every 10 seconds or a nice context manager.
@@ -657,7 +656,7 @@ class MusicBot(discord.Client):
                     ttime/listlen - wait_per_song,
                     self.dialogue.get(lang, 'Dialog_PlaylistNotifyE', fallback='/song from expected').replace(u'\x5cn', '\n'),
                     self._fixg(wait_per_song*num_songs),
-                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n')) #X4: Translated
+                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n'))
                 )
 
                 await self.delete_message(procmesg)
@@ -672,27 +671,27 @@ class MusicBot(discord.Client):
                 reply_text = reply_text % (entry.title, position)
             else:
                 reply_text += ' %s %s'
-                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until) #X4: Translated
+                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until)
                 # TODO: Subtract time the current song has been playing for
 
             return Response(reply_text, reply=True, delete_after=15)
 
         except Exception as e:
             traceback.print_exc()
-            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n')))
 
     async def handle_music(self, player, channel, author, song_url):
         """
         Usage {command_prefix}music [song link]
         Adds the song to the playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         try:
             await self.send_typing(channel)
 
-            reply_text = "%s **%s** %s %s" #X4: Move text to translation
+            reply_text = "%s **%s** %s %s"
 
             info = await extract_info(player.playlist.loop, song_url, download=False, process=False)
 
@@ -716,7 +715,7 @@ class MusicBot(discord.Client):
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoA', fallback='Gathering playlist information for').replace(u'\x5cn', '\n'),
                         num_songs,
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoB', fallback='songs').replace(u'\x5cn', '\n'),
-                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.')) #X4: Translated
+                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.'))
 
                 # We don't have a pretty way of doing this yet.  We need either a loop
                 # that sends these every 10 seconds or a nice context manager.
@@ -740,7 +739,7 @@ class MusicBot(discord.Client):
                     ttime/listlen - wait_per_song,
                     self.dialogue.get(lang, 'Dialog_PlaylistNotifyE', fallback='/song from expected').replace(u'\x5cn', '\n'),
                     self._fixg(wait_per_song*num_songs),
-                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n')) #X4: Translated
+                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n'))
                 )
 
                 await self.delete_message(procmesg)
@@ -755,27 +754,27 @@ class MusicBot(discord.Client):
                 reply_text = reply_text % (entry.title, position)
             else:
                 reply_text += ' %s %s'
-                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until) #X4: Translated
+                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until)
                 # TODO: Subtract time the current song has been playing for
 
             return Response(reply_text, reply=True, delete_after=15)
 
         except Exception as e:
             traceback.print_exc()
-            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n')))
 
     async def handle_m(self, player, channel, author, song_url):
         """
         Usage {command_prefix}m [song link]
         Adds the song to the playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         try:
             await self.send_typing(channel)
 
-            reply_text = "%s **%s** %s %s" #X4: Move text to translation
+            reply_text = "%s **%s** %s %s"
 
             info = await extract_info(player.playlist.loop, song_url, download=False, process=False)
 
@@ -799,7 +798,7 @@ class MusicBot(discord.Client):
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoA', fallback='Gathering playlist information for').replace(u'\x5cn', '\n'),
                         num_songs,
                         self.dialogue.get(lang, 'Dialog_PlaylistInfoB', fallback='songs').replace(u'\x5cn', '\n'),
-                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.')) #X4: Translated
+                        ', {} {} {}'.format(self.dialogue.get(lang, 'Dialog_PlaylistInfoC', fallback='ETA:').replace(u'\x5cn', '\n'), self._fixg(num_songs*wait_per_song), self.dialogue.get(lang, 'Dialog_PlaylistInfoD', fallback='seconds').replace(u'\x5cn', '\n')) if num_songs >= 10 else '.'))
 
                 # We don't have a pretty way of doing this yet.  We need either a loop
                 # that sends these every 10 seconds or a nice context manager.
@@ -823,7 +822,7 @@ class MusicBot(discord.Client):
                     ttime/listlen - wait_per_song,
                     self.dialogue.get(lang, 'Dialog_PlaylistNotifyE', fallback='/song from expected').replace(u'\x5cn', '\n'),
                     self._fixg(wait_per_song*num_songs),
-                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n')) #X4: Translated
+                    self.dialogue.get(lang, 'Dialog_PlaylistNotifyF', fallback='s').replace(u'\x5cn', '\n'))
                 )
 
                 await self.delete_message(procmesg)
@@ -838,23 +837,23 @@ class MusicBot(discord.Client):
                 reply_text = reply_text % (entry.title, position)
             else:
                 reply_text += ' %s %s'
-                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until) #X4: Translated
+                reply_text = reply_text % (self.dialogue.get(lang, 'Dialog_EnqueuedA', fallback='Enqueued').replace(u'\x5cn', '\n'), entry.title, self.dialogue.get(lang, 'Dialog_EnqueuedB', fallback='to be played. Position in queue:').replace(u'\x5cn', '\n'), position, self.dialogue.get(lang, 'Dialog_EnqueuedC', fallback='- estimated time until playing:').replace(u'\x5cn', '\n'), time_until)
                 # TODO: Subtract time the current song has been playing for
 
             return Response(reply_text, reply=True, delete_after=15)
 
         except Exception as e:
             traceback.print_exc()
-            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandError('%s %s %s' % (self.dialogue.get(lang, 'Dialog_UnablePlayingA', fallback='Unable to queue up song at').replace(u'\x5cn', '\n'), song_url, self.dialogue.get(lang, 'Dialog_UnablePlayingB', fallback='to be played.').replace(u'\x5cn', '\n')))
 
-    """async def handle_p(self, player, channel, author, song_url): #X4: Add shortcut command
+    """async def handle_p(self, player, channel, author, song_url):
         "" "
         Usage {command_prefix}p [song link]
         Adds the song to the playlist.
         "" "
 
         try:
-            await self.handle_play(player, channel, author, song_url) #X4: Use shortcut to main function
+            await self.handle_play(player, channel, author, song_url)
 
             return Response("Enqueued **%s** to be played. Position in queue: %s", reply=True, delete_after=15)
 
@@ -862,36 +861,36 @@ class MusicBot(discord.Client):
             traceback.print_exc()
             raise CommandError('Unable to queue up song at %s to be played.' % song_url)
 
-    async def handle_add(self, player, channel, author, song_url): #X4: Add shortcut command
+    async def handle_add(self, player, channel, author, song_url):
         "" "
         Usage {command_prefix}add [song link]
         Adds the song to the playlist.
         "" "
 
-        await self.handle_play(player, channel, author, song_url) #X4: Use shortcut to main function
+        await self.handle_play(player, channel, author, song_url)
 
-    async def handle_music(self, player, channel, author, song_url): #X4: Add shortcut command
+    async def handle_music(self, player, channel, author, song_url):
         "" "
         Usage {command_prefix}music [song link]
         Adds the song to the playlist.
         "" "
 
-        await self.handle_play(player, channel, author, song_url) #X4: Use shortcut to main function
+        await self.handle_play(player, channel, author, song_url)
 
-    async def handle_m(self, player, channel, author, song_url): #X4: Add shortcut command
+    async def handle_m(self, player, channel, author, song_url):
         "" "
         Usage {command_prefix}m [song link]
         Adds the song to the playlist.
         "" "
 
-        await self.handle_play(player, channel, author, song_url) #X4: Use shortcut to main function"""
+        await self.handle_play(player, channel, author, song_url)"""
 
     """async def handle_replay(self, player, channel, author): #X4: Define command that add track in queue, but in second position.
         "" "
         Usage {command_prefix}replay
         This command make bot playing current track again, after it finished.
         "" "
-        player = await self.get_player(channel) #X4: Initialize player
+        player = await self.get_player(channel)
 
         self.backuplist.append(player.current_entry.url) #X4: Add URL in our playlist
 
@@ -902,8 +901,8 @@ class MusicBot(discord.Client):
         Usage {command_prefix}summon
         This command is for summoning the bot into your voice channel [but it should do it automatically the first time]
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         if self.voice_clients:
             raise CommandError("Multiple servers not supported at this time. / X4: In queue to update")
@@ -916,7 +915,7 @@ class MusicBot(discord.Client):
             player = await self.get_player(channel, create=True) #X4: Check player
             if channel.server.id in self.players: #X4: Check same server (true) or other (else)
                 await self.get_voice_client(channel) #X4: This does not work on same server, need to fix!
-            else: #X4: Else
+            else:
                 await self.get_voice_client(channel) #X4: Move bot to other new server and in new channel
             if player.is_stopped: #X4: Check if player stopped (practically almost stopped)
                 player.play() #X4: Send "play" state
@@ -939,17 +938,17 @@ class MusicBot(discord.Client):
                 break
 
         if not channel:
-            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_UserNoVoChSummon', fallback='You are not in a voice channel!')) #X4: Translated
+            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_UserNoVoChSummon', fallback='You are not in a voice channel!'))
 
         chperms = channel.permissions_for(channel.server.me)
 
         if not chperms.connect:
-            print("%s \"%s\", %s." % (self.dialogue.get(lang, 'Dialog_SummonPermissionA', fallback='Cannot join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionB', fallback='no permission').replace(u'\x5cn', '\n'))) #X4: Translated
-            return Response("```%s \"%s\", %s.```" % (self.dialogue.get(lang, 'Dialog_SummonPermissionA', fallback='Cannot join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionB', fallback='no permission').replace(u'\x5cn', '\n')), delete_after=15) #X4: Translated
+            print("%s \"%s\", %s." % (self.dialogue.get(lang, 'Dialog_SummonPermissionA', fallback='Cannot join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionB', fallback='no permission').replace(u'\x5cn', '\n')))
+            return Response("```%s \"%s\", %s.```" % (self.dialogue.get(lang, 'Dialog_SummonPermissionA', fallback='Cannot join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionB', fallback='no permission').replace(u'\x5cn', '\n')), delete_after=15)
 
         elif not chperms.speak:
-            print("%s \"%s\", %s." % (self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakA', fallback='Will not join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakB', fallback='no permission to speak').replace(u'\x5cn', '\n'))) #X4: Translated
-            return Response("```%s \"%s\", %s.```" % (self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakA', fallback='Will not join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakB', fallback='no permission to speak').replace(u'\x5cn', '\n')), delete_after=15) #X4: Translated
+            print("%s \"%s\", %s." % (self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakA', fallback='Will not join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakB', fallback='no permission to speak').replace(u'\x5cn', '\n')))
+            return Response("```%s \"%s\", %s.```" % (self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakA', fallback='Will not join channel').replace(u'\x5cn', '\n'), channel.name, self.dialogue.get(lang, 'Dialog_SummonPermissionSpeakB', fallback='no permission to speak').replace(u'\x5cn', '\n')), delete_after=15)
 
         # if moving:
         #     await self.move_member(channel.server.me, channel)
@@ -965,64 +964,64 @@ class MusicBot(discord.Client):
         Usage {command_prefix}pause
         Pauses playback of the current song. [todo: should make sure it works fine when used inbetween songs]
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         if player.is_playing:
             player.pause()
 
         else:
-            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_PauseError', fallback='Player is not playing.').replace(u'\x5cn', '\n')) #X4: Translated
+            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_PauseError', fallback='Player is not playing.').replace(u'\x5cn', '\n'))
 
     async def handle_resume(self, player, author):
         """
         Usage {command_prefix}resume
         Resumes playback of a paused song.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         if player.is_paused:
             player.resume()
 
         else:
-            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_ResumeError', fallback='Player is not paused.').replace(u'\x5cn', '\n')) #X4: Translated
+            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_ResumeError', fallback='Player is not paused.').replace(u'\x5cn', '\n'))
 
-    async def handle_shuffle(self, player, author): #X4: Added author for use his id
+    async def handle_shuffle(self, player, author):
         """
         Usage {command_prefix}shuffle
         Shuffles the playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         player.playlist.shuffle()
-        return Response('%s' % self.dialogue.get(lang, 'Dialog_Shuffle', fallback='*shuffleshuffleshuffle*').replace(u'\x5cn', '\n'), delete_after=10) #X4: Translated
+        return Response('%s' % self.dialogue.get(lang, 'Dialog_Shuffle', fallback='*shuffleshuffleshuffle*').replace(u'\x5cn', '\n'), delete_after=10)
 
-    async def handle_clear(self, player, author): #X4: Added author for use his id
+    async def handle_clear(self, player, author):
         """
         Usage {command_prefix}clear
         Clears the playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         if author.id == self.config.owner_id:
             player.playlist.clear()
-            return Response('%s' % self.dialogue.get(lang, 'Dialog_Clear', fallback='*Playlist cleared*').replace(u'\x5cn', '\n'), delete_after=10) #X4: Added response and also translated
-        else: #X4: Notify user, that he can't use this command
-            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_ClearError', fallback='Only Owner can use this command.').replace(u'\x5cn', '\n')) #X4: Notify, translated
+            return Response('%s' % self.dialogue.get(lang, 'Dialog_Clear', fallback='*Playlist cleared*').replace(u'\x5cn', '\n'), delete_after=10)
+        else:
+            raise CommandError('%s' % self.dialogue.get(lang, 'Dialog_ClearError', fallback='Only Owner can use this command.').replace(u'\x5cn', '\n'))
 
     async def handle_skip(self, player, channel, author):
         """
         Usage {command_prefix}skip
         Skips the current song when enough votes are cast, or by the bot owner.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         if player.is_stopped or player.is_paused: # TODO: pausing and skipping a song breaks /something/, i'm not sure what
-            raise CommandError("%s" % self.dialogue.get(lang, 'Dialog_SkipWhileNoSummon', fallback='Can\'t skip! The player is not playing!').replace(u'\x5cn', '\n')) #X4: Translated
+            raise CommandError("%s" % self.dialogue.get(lang, 'Dialog_SkipWhileNoSummon', fallback='Can\'t skip! The player is not playing!').replace(u'\x5cn', '\n'))
 
         if author.id == self.config.owner_id:
             player.skip()
@@ -1045,7 +1044,7 @@ class MusicBot(discord.Client):
                     player.current_entry.title,
                     self.dialogue.get(lang, 'Dialog_SkipRemainB', fallback='was acknowledged.\nThe vote to skip has been passed.').replace(u'\x5cn', '\n'),
                     ' %s' % self.dialogue.get(lang, 'Dialog_SkipRemainC', fallback='Next song coming up!').replace(u'\x5cn', '\n') if player.playlist.peek() else ''
-                ), #X4: Translated
+                ),
                 reply=True,
                 delete_after=10
             )
@@ -1063,29 +1062,29 @@ class MusicBot(discord.Client):
                     self.dialogue.get(lang, 'Dialog_SkipRemainD2', fallback='required to vote to skip this song.').replace(u'\x5cn', '\n')
                 ),
                 reply=True
-            ) #X4: This response translated
+            )
 
-    async def handle_s(self, player, channel, author): #X4: Add shortcut command
+    async def handle_s(self, player, channel, author):
         """
         Usage {command_prefix}s
         Skips the current song when enough votes are cast, or by the bot owner.
         """
 
-        await self.handle_skip(player, channel, author) #X4: Use shortcut to main function
+        await self.handle_skip(player, channel, author)
 
-    async def handle_volume(self, author, message, new_volume=None): #X4: Added author for use his id
+    async def handle_volume(self, author, message, new_volume=None):
         """
         Usage {command_prefix}volume (+/-)[volume]
         Sets the playback volume. Accepted values are from 1 to 100.
         Putting + or - before the volume will make the volume change relative to the current volume.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         player = await self.get_player(message.channel)
 
         if not new_volume:
-            return Response('%s `%s%%`' % (self.dialogue.get(lang, 'Dialog_NewVolumeA', fallback='Current volume:').replace(u'\x5cn', '\n'), int(player.volume * 100)), reply=True, delete_after=10) #X4: Translated
+            return Response('%s `%s%%`' % (self.dialogue.get(lang, 'Dialog_NewVolumeA', fallback='Current volume:').replace(u'\x5cn', '\n'), int(player.volume * 100)), reply=True, delete_after=10)
 
         relative = False
         if new_volume[0] in '+-':
@@ -1095,7 +1094,7 @@ class MusicBot(discord.Client):
             new_volume = int(new_volume)
 
         except ValueError:
-            raise CommandError('{} {}'.format(new_volume, self.dialogue.get(lang, 'Dialog_NewVolumeError', fallback='is not a valid number').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandError('{} {}'.format(new_volume, self.dialogue.get(lang, 'Dialog_NewVolumeError', fallback='is not a valid number').replace(u'\x5cn', '\n')))
 
         if relative:
             vol_change = new_volume
@@ -1106,27 +1105,27 @@ class MusicBot(discord.Client):
         if 0 < new_volume <= 100:
             player.volume = new_volume / 100.0
 
-            return Response('%s %d %s %d' % (self.dialogue.get(lang, 'Dialog_NewVolumeB', fallback='updated volume from').replace(u'\x5cn', '\n'), old_volume, self.dialogue.get(lang, 'Dialog_NewVolumeC', fallback='to').replace(u'\x5cn', '\n'), new_volume), reply=True, delete_after=10) #X4: Translated
+            return Response('%s %d %s %d' % (self.dialogue.get(lang, 'Dialog_NewVolumeB', fallback='updated volume from').replace(u'\x5cn', '\n'), old_volume, self.dialogue.get(lang, 'Dialog_NewVolumeC', fallback='to').replace(u'\x5cn', '\n'), new_volume), reply=True, delete_after=10)
 
         else:
             if relative:
-                raise CommandError('{} {}{:+} -> {}%. {} {} {} {:+}.'.format(self.dialogue.get(lang, 'Dialog_VolChangeErrorA', fallback='Unreasonable volume change provided:').replace(u'\x5cn', '\n'), old_volume, vol_change, old_volume + vol_change, self.dialogue.get(lang, 'Dialog_VolChangeErrorB', fallback='Provide a change between').replace(u'\x5cn', '\n'), 1 - old_volume, self.dialogue.get(lang, 'Dialog_VolChangeErrorC', fallback='and').replace(u'\x5cn', '\n'), 100 - old_volume)) #X4: Translated
+                raise CommandError('{} {}{:+} -> {}%. {} {} {} {:+}.'.format(self.dialogue.get(lang, 'Dialog_VolChangeErrorA', fallback='Unreasonable volume change provided:').replace(u'\x5cn', '\n'), old_volume, vol_change, old_volume + vol_change, self.dialogue.get(lang, 'Dialog_VolChangeErrorB', fallback='Provide a change between').replace(u'\x5cn', '\n'), 1 - old_volume, self.dialogue.get(lang, 'Dialog_VolChangeErrorC', fallback='and').replace(u'\x5cn', '\n'), 100 - old_volume))
             else:
-                raise CommandError('{} {}%. {}'.format(self.dialogue.get(lang, 'Dialog_VolChangeErrorA2', fallback='Unreasonable volume provided:').replace(u'\x5cn', '\n'), new_volume, self.dialogue.get(lang, 'Dialog_VolChangeErrorB2', fallback='Provide a value between 1 and 100.').replace(u'\x5cn', '\n'))) #X4: Translated
+                raise CommandError('{} {}%. {}'.format(self.dialogue.get(lang, 'Dialog_VolChangeErrorA2', fallback='Unreasonable volume provided:').replace(u'\x5cn', '\n'), new_volume, self.dialogue.get(lang, 'Dialog_VolChangeErrorB2', fallback='Provide a value between 1 and 100.').replace(u'\x5cn', '\n')))
 
-    async def handle_queue(self, channel, author): #X4: Added author for use his id
+    async def handle_queue(self, channel, author):
         """
         Usage {command_prefix}queue
         Prints the current song queue.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         player = await self.get_player(channel)
 
         lines = []
         unlisted = 0
-        andmoretext = '* ... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), 'x'*len(player.playlist.entries), self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more')) #X4: Translated
+        andmoretext = '* ... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), 'x'*len(player.playlist.entries), self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more'))
 
         if player.current_entry:
             song_progress = str(timedelta(seconds=player.progress)).lstrip('0').lstrip(':')
@@ -1135,14 +1134,14 @@ class MusicBot(discord.Client):
 
             if player.current_entry.meta.get('channel', False) and player.current_entry.meta.get('author', False):
                 lines.append("%s **%s** %s **%s** %s\n" % (
-                    self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by').replace(u'\x5cn', '\n'), player.current_entry.meta['author'].name, prog_str)) #X4: Translated
+                    self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by').replace(u'\x5cn', '\n'), player.current_entry.meta['author'].name, prog_str))
             else:
-                lines.append("%s **%s** %s\n" % (self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, prog_str)) #X4: Translated
+                lines.append("%s **%s** %s\n" % (self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, prog_str))
 
 
         for i, item in enumerate(player.playlist, 1):
             if item.meta.get('channel', False) and item.meta.get('author', False):
-                nextline = '`{}.` **{}** {} **{}**'.format(i, item.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by'), item.meta['author'].name).strip() #X4: Translated
+                nextline = '`{}.` **{}** {} **{}**'.format(i, item.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by'), item.meta['author'].name).strip()
             else:
                 nextline = '`{}.` **{}**'.format(i, item.title).strip()
 
@@ -1156,27 +1155,27 @@ class MusicBot(discord.Client):
             lines.append(nextline)
 
         if unlisted:
-            lines.append('\n*... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), unlisted, self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more'))) #X4: Translated
+            lines.append('\n*... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), unlisted, self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more')))
 
         if not lines: 
-            lines.append('{} {}play.'.format(self.dialogue.get(lang, 'Dialog_NoQueue', fallback='There are no songs queued! Queue something with').replace(u'\x5cn', '\n'), self.config.command_prefix)) #X4: Translated
+            lines.append('{} {}play.'.format(self.dialogue.get(lang, 'Dialog_NoQueue', fallback='There are no songs queued! Queue something with').replace(u'\x5cn', '\n'), self.config.command_prefix))
 
         message = '\n'.join(lines)
         return Response(message, delete_after=30)
 
-    async def handle_q(self, channel, author): #X4: Add shortcut command, use author.id for language
+    async def handle_q(self, channel, author):
         """
         Usage {command_prefix}q
         Prints the current song queue.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
         player = await self.get_player(channel)
 
         lines = []
         unlisted = 0
-        andmoretext = '* ... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), 'x'*len(player.playlist.entries), self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more')) #X4: Translated
+        andmoretext = '* ... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), 'x'*len(player.playlist.entries), self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more'))
 
         if player.current_entry:
             song_progress = str(timedelta(seconds=player.progress)).lstrip('0').lstrip(':')
@@ -1185,14 +1184,14 @@ class MusicBot(discord.Client):
 
             if player.current_entry.meta.get('channel', False) and player.current_entry.meta.get('author', False):
                 lines.append("%s **%s** %s **%s** %s\n" % (
-                    self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by').replace(u'\x5cn', '\n'), player.current_entry.meta['author'].name, prog_str)) #X4: Translated
+                    self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by').replace(u'\x5cn', '\n'), player.current_entry.meta['author'].name, prog_str))
             else:
-                lines.append("%s **%s** %s\n" % (self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, prog_str)) #X4: Translated
+                lines.append("%s **%s** %s\n" % (self.dialogue.get(lang, 'Dialog_NowPlaying', fallback='Now Playing:').replace(u'\x5cn', '\n'), player.current_entry.title, prog_str))
 
 
         for i, item in enumerate(player.playlist, 1):
             if item.meta.get('channel', False) and item.meta.get('author', False):
-                nextline = '`{}.` **{}** {} **{}**'.format(i, item.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by'), item.meta['author'].name).strip() #X4: Translated
+                nextline = '`{}.` **{}** {} **{}**'.format(i, item.title, self.dialogue.get(lang, 'Dialog_AddedBy', fallback='added by'), item.meta['author'].name).strip()
             else:
                 nextline = '`{}.` **{}**'.format(i, item.title).strip()
 
@@ -1206,109 +1205,109 @@ class MusicBot(discord.Client):
             lines.append(nextline)
 
         if unlisted:
-            lines.append('\n*... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), unlisted, self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more'))) #X4: Translated
+            lines.append('\n*... %s %s %s*' % (self.dialogue.get(lang, 'Dialog_AndMoreA', fallback='and'), unlisted, self.dialogue.get(lang, 'Dialog_AndMoreB', fallback='more')))
 
         if not lines:
-            lines.append('{} {}play.'.format(self.dialogue.get(lang, 'Dialog_NoQueue', fallback='There are no songs queued! Queue something with').replace(u'\x5cn', '\n'), self.config.command_prefix)) #X4: Translated
+            lines.append('{} {}play.'.format(self.dialogue.get(lang, 'Dialog_NoQueue', fallback='There are no songs queued! Queue something with').replace(u'\x5cn', '\n'), self.config.command_prefix))
 
         message = '\n'.join(lines)
         return Response(message, delete_after=30)
 
-    """async def handle_q(self, channel): #X4: Add shortcut command
+    """async def handle_q(self, channel):
         "" "
         Usage {command_prefix}q
         Prints the current song queue.
         "" "
 
-        await self.handle_queue(channel) #X4: Use shortcut to main function"""
+        await self.handle_queue(channel)"""
 
-    async def handle_remove(self, author, player, channel): #X4: New command REMOVE to remove trash in auto playlist
+    async def handle_remove(self, author, player, channel):
         """
         Usage {command_prefix}remove
         Remove this URL into auto playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
-        player = await self.get_player(channel) #X4: Initialize player
+        player = await self.get_player(channel)
 
-        if player.current_entry.url in self.backuplist: #X4: Check that URL not exist in our playlist
-            self.backuplist.remove(player.current_entry.url) #X4: Remove URL from autoplaylist (because it don't interesting or trash or too long or else...)
-            write_file(self.config.backup_playlist_file, self.backuplist) #X4: Save and close our autoplaylist without current playing song
+        if player.current_entry.url in self.backuplist:
+            self.backuplist.remove(player.current_entry.url)
+            write_file(self.config.backup_playlist_file, self.backuplist)
         else:
-            raise CommandInfo('%s %s' % (player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemoveError', fallback='not in playlist. Can\'t remove it.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandInfo('%s %s' % (player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemoveError', fallback='not in playlist. Can\'t remove it.').replace(u'\x5cn', '\n')))
 
-        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_RemovedA', fallback='Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemovedB', fallback='**__removed__** from rotation. Use command `undo` to back this track.').replace(u'\x5cn', '\n')), delete_after=25) #X4: End REMOVE, translated
+        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_RemovedA', fallback='Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemovedB', fallback='**__removed__** from rotation. Use command `undo` to back this track.').replace(u'\x5cn', '\n')), delete_after=25)
 
-    async def handle_rem(self, author, player, channel): #X4: New command REM (copy of REMOVE) to remove trash in auto playlist
+    async def handle_rem(self, author, player, channel):
         """
         Usage {command_prefix}rem
         Remove this URL into auto playlist.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
-        player = await self.get_player(channel) #X4: Initialize player
+        player = await self.get_player(channel)
 
-        if player.current_entry.url in self.backuplist: #X4: Check that URL not exist in our playlist
-            self.backuplist.remove(player.current_entry.url) #X4: Remove URL from autoplaylist (because it don't interesting or trash or too long or else...)
-            write_file(self.config.backup_playlist_file, self.backuplist) #X4: Save and close our autoplaylist without current playing song
+        if player.current_entry.url in self.backuplist:
+            self.backuplist.remove(player.current_entry.url)
+            write_file(self.config.backup_playlist_file, self.backuplist)
         else:
-            raise CommandInfo('**%s** %s' % (player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemoveError', fallback='not in playlist. Can\'t remove it.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandInfo('**%s** %s' % (player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemoveError', fallback='not in playlist. Can\'t remove it.').replace(u'\x5cn', '\n')))
 
-        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_RemovedA', fallback='Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemovedB', fallback='**__removed__** from rotation. Use command `undo` to back this track.').replace(u'\x5cn', '\n')), delete_after=25) #X4: End REM, translated
+        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_RemovedA', fallback='Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_RemovedB', fallback='**__removed__** from rotation. Use command `undo` to back this track.').replace(u'\x5cn', '\n')), delete_after=25)
 
-    """async def handle_rem(self, player, channel): #X4: Add shortcut command
+    """async def handle_rem(self, player, channel):
         "" "
         Usage {command_prefix}rem
         Remove this URL into auto playlist.
         "" "
 
-        await self.handle_remove(player, channel) #X4: Use shortcut to main function"""
+        await self.handle_remove(player, channel)"""
 
-    async def handle_undo(self, author, player, channel): #X4: New command UNDO to undo remove command
+    async def handle_undo(self, author, player, channel):
         """
         Usage {command_prefix}undo
         Undo removed URL.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
-        player = await self.get_player(channel) #X4: Initialize player
+        player = await self.get_player(channel)
 
-        if player.current_entry.url not in self.backuplist: #X4: Check that URL not exist in our playlist
-            self.backuplist.append(player.current_entry.url) #X4: Add URL in our playlist
-            write_file(self.config.backup_playlist_file, self.backuplist) #X4: Save and close file backuplist.txt (with new track)
+        if player.current_entry.url not in self.backuplist:
+            self.backuplist.append(player.current_entry.url)
+            write_file(self.config.backup_playlist_file, self.backuplist)
         else:
-            raise CommandInfo('%s **%s** %s' % (self.dialogue.get(lang, 'Dialog_UndoWarningA', fallback='No need to undo.').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoWarningB', fallback='Already have in playlist.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandInfo('%s **%s** %s' % (self.dialogue.get(lang, 'Dialog_UndoWarningA', fallback='No need to undo.').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoWarningB', fallback='Already have in playlist.').replace(u'\x5cn', '\n')))
 
-        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_UndoA', fallback='**Undo successful.** Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoB', fallback='is back from rotation.').replace(u'\x5cn', '\n')), delete_after=15) #X4: End UNDO, translated
+        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_UndoA', fallback='**Undo successful.** Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoB', fallback='is back from rotation.').replace(u'\x5cn', '\n')), delete_after=15)
 
-    async def handle_u(self, author, player, channel): #X4: New command U (copy of UNDO) to undo remove command
+    async def handle_u(self, author, player, channel):
         """
         Usage {command_prefix}u
         Undo removed URL.
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode) #X4: Use personal language or default
+        global landconf
+        lang = langconf.get('User', author.id, fallback=self.config.server_language_mode)
 
-        player = await self.get_player(channel) #X4: Initialize player
+        player = await self.get_player(channel)
 
-        if player.current_entry.url not in self.backuplist: #X4: Check that URL not exist in our playlist
-            self.backuplist.append(player.current_entry.url) #X4: Add URL in our playlist
-            write_file(self.config.backup_playlist_file, self.backuplist) #X4: Save and close file backuplist.txt (with new track)
+        if player.current_entry.url not in self.backuplist:
+            self.backuplist.append(player.current_entry.url)
+            write_file(self.config.backup_playlist_file, self.backuplist)
         else:
-            raise CommandInfo('%s **%s** %s' % (self.dialogue.get(lang, 'Dialog_UndoWarningA', fallback='No need to undo.').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoWarningB', fallback='Already have in playlist.').replace(u'\x5cn', '\n'))) #X4: Translated
+            raise CommandInfo('%s **%s** %s' % (self.dialogue.get(lang, 'Dialog_UndoWarningA', fallback='No need to undo.').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoWarningB', fallback='Already have in playlist.').replace(u'\x5cn', '\n')))
 
-        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_UndoA', fallback='**Undo successful.** Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoB', fallback='is back from rotation.').replace(u'\x5cn', '\n')), delete_after=15) #X4: End U, translated
+        return Response("%s **%s** %s" % (self.dialogue.get(lang, 'Dialog_UndoA', fallback='**Undo successful.** Song').replace(u'\x5cn', '\n'), player.current_entry.title, self.dialogue.get(lang, 'Dialog_UndoB', fallback='is back from rotation.').replace(u'\x5cn', '\n')), delete_after=15)
 
-    """async def handle_u(self, player, channel): #X4: Add shortcut command
+    """async def handle_u(self, player, channel):
         "" "
         Usage {command_prefix}u
         Undo removed URL.
         "" "
 
-        await self.handle_undo(player, channel) #X4: Use shortcut to main function"""
+        await self.handle_undo(player, channel)"""
 
     async def handle_clean(self, message, author, amount):
         """
@@ -1322,82 +1321,53 @@ class MusicBot(discord.Client):
         Usage {command_prefix}setlanguage [language]
         Setup bot language for your reply. Language is 2 letters abbreviation (see http://www.abbreviations.com/acronyms/LANGUAGES2L).
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=None) #X4: Get current language
-        if lang == language: #X4: If user try to apply same language, no need to reapply it
-            raise CommandInfo('%s' % self.dialogue.get(language, 'Dialog_SameLanguage', fallback=None)) #X4: Send notification to user
-        if lang == None: #X4: For empty setting
-            lang = self.config.server_language_mode #X4: Set default server language
-            langconf.set('User', author.id, language) #X4: Set new language for user
-            with open('config/userlang.txt', 'w') as lwritefile: #X4: Open our config with write access
-                langconf.write(lwritefile) #X4: Apply changes in file and auto-close it
-            raise CommandInfo('Changed your custom language to **%s**. %s' % (language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None))) #X4: Send notification to user (also use new language)
-        langconf.set('User', author.id, language) #X4: Set new language for user
-        with open('config/userlang.txt', 'w') as lwritefile: #X4: Open our config with write access
-            langconf.write(lwritefile) #X4: Apply changes in file and auto-close it
-        raise CommandInfo('Changed your custom language **%s** to new **%s**. %s' % (lang, language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None))) #X4: Send notification to user (also use new language)
+        global landconf
+        lang = langconf.get('User', author.id, fallback=None)
+        if lang == language:
+            raise CommandInfo('%s' % self.dialogue.get(language, 'Dialog_SameLanguage', fallback=None))
+        if lang == None:
+            lang = self.config.server_language_mode
+            langconf.set('User', author.id, language)
+            with open('config/userlang.txt', 'w') as lwritefile:
+                langconf.write(lwritefile)
+            raise CommandInfo('Changed your custom language to **%s**. %s' % (language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None)))
+        langconf.set('User', author.id, language)
+        with open('config/userlang.txt', 'w') as lwritefile:
+            langconf.write(lwritefile)
+        raise CommandInfo('Changed your custom language **%s** to new **%s**. %s' % (lang, language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None)))
 
-    """ X4: First version of code
-    async def handle_setlanguage(self, message, author, language): #X4: This function setup custom language per user. And save in userlang.txt.
-        "" "
-        Usage {command_prefix}setlanguage [language]
-        Setup bot language for your reply. Language is 2 letters abbreviation (see http://www.abbreviations.com/acronyms/LANGUAGES2L).
-        "" "
-        for lconfstring in self.userlang: #X4: Separate multiline file into strings
-            if author.id in lconfstring: #X4: Check per string author.id and if found use replace algorithm
-                aid, sep, lang = lconfstring.partition('=') #X4: Separate id=language into 'id', '=' and 'language'
-                if lang == language: #X4: If user try to apply same language, no need to reapply it
-                    raise CommandInfo('You already setup bot to reply on **%s** language.' % language) #X4: Send notification to user
-                else: #X4: Else
-                    self.userlang.remove(lconfstring) #X4: Remove old setting about user language
-                    lconfstring = aid + sep + language #X4: Create new string with new parameter
-                    self.userlang.append(lconfstring) #X4: Add new parameter in database
-                    write_file(self.config.user_language_file, self.userlang) #X4: Save and close language database file
-                    raise CommandInfo('Changed your custom language **%s** to new **%s**. Now bot will speak to you on this language.' % (lang, language)) #X4: Send notification to user
-                
-        #X4: algorithm if settings don't setup (first time)
-        lconfstring = author.id + '=' + language #X4: Use string to make one argument for append
-        self.userlang.append(lconfstring) #X4: Add new parameter in database
-        write_file(self.config.user_language_file, self.userlang) #X4: Save and close language database file
-        raise CommandInfo('Default language is now **%s**. Now bot will speak to you on this language.' % language) #X4: Send notification to user"""
-
-    async def handle_sl(self, message, author, language): #X4: This function setup custom language per user. And save in userlang.txt.
+    async def handle_sl(self, message, author, language):
         """
         Usage {command_prefix}sl [language]
         Setup bot language for your reply. Language is 2 letters abbreviation (see http://www.abbreviations.com/acronyms/LANGUAGES2L).
         """
-        global landconf #X4: Use language mode
-        lang = langconf.get('User', author.id, fallback=None) #X4: Get current language
-        if lang == language: #X4: If user try to apply same language, no need to reapply it
-            raise CommandInfo('%s' % self.dialogue.get(language, 'Dialog_SameLanguage', fallback=None)) #X4: Send notification to user
-        if lang == None: #X4: For empty setting
-            lang = self.config.server_language_mode #X4: Set default server language
-            langconf.set('User', author.id, language) #X4: Set new language for user
-            with open('config/userlang.txt', 'w') as lwritefile: #X4: Open our config with write access
-                langconf.write(lwritefile) #X4: Apply changes in file and auto-close it
-            raise CommandInfo('Changed your custom language to **%s**. %s' % (language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None))) #X4: Send notification to user (also use new language)
-        langconf.set('User', author.id, language) #X4: Set new language for user
-        with open('config/userlang.txt', 'w') as lwritefile: #X4: Open our config with write access
-            langconf.write(lwritefile) #X4: Apply changes in file and auto-close it
-        raise CommandInfo('Changed your custom language **%s** to new **%s**. %s' % (lang, language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None))) #X4: Send notification to user (also use new language)
+        global landconf
+        lang = langconf.get('User', author.id, fallback=None)
+        if lang == language:
+            raise CommandInfo('%s' % self.dialogue.get(language, 'Dialog_SameLanguage', fallback=None))
+        if lang == None:
+            lang = self.config.server_language_mode
+            langconf.set('User', author.id, language)
+            with open('config/userlang.txt', 'w') as lwritefile:
+                langconf.write(lwritefile)
+            raise CommandInfo('Changed your custom language to **%s**. %s' % (language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None)))
+        langconf.set('User', author.id, language)
+        with open('config/userlang.txt', 'w') as lwritefile:
+            langconf.write(lwritefile)
+        raise CommandInfo('Changed your custom language **%s** to new **%s**. %s' % (lang, language, self.dialogue.get(language, 'Dialog_NewLanguage', fallback=None)))
 
-    async def handle_unsetlanguage(self, message, author): #X4: This function delete custom language per user. It will use default bot language.
+    async def handle_unsetlanguage(self, message, author):
         """
         Usage {command_prefix}unsetlanguage
         Setup bot language for your reply. 
         """
         global landconf
         if langconf.get('User', author.id, fallback=None) != None:
-            langconf.remove_option('User', author.id) #X4: Remove string with language settings for user who call function
-            with open('config/userlang.txt', 'w') as lwritefile: #X4: Open our config with write access
-                langconf.write(lwritefile) #X4: Apply changes in file and auto-close it
-            raise CommandInfo('%s' % self.dialogue.get(langconf.get('User', author.id, fallback=self.config.server_language_mode), 'Dialog_ResetLanguage', fallback=None)) #X4: Send notification to user
-            """ X4: First version of code
-            for lconfstring in self.userlang: #X4: Sepagate multiline file into strings
-                if author.id in lconfstring: #X4: Check per string author.id and if found use replace algorithm
-                    self.userlang.remove(lconfstring) #X4: Remove user custom language
-                    write_file(self.config.user_language_file, self.userlang) #X4: Save and close language database file"""
-        raise CommandInfo('%s' % self.dialogue.get(langconf.get('User', author.id, fallback=self.config.server_language_mode), 'Dialog_NoLanguage', fallback=None)) #X4: Send notification to user
+            langconf.remove_option('User', author.id)
+            with open('config/userlang.txt', 'w') as lwritefile:
+                langconf.write(lwritefile)
+            raise CommandInfo('%s' % self.dialogue.get(langconf.get('User', author.id, fallback=self.config.server_language_mode), 'Dialog_ResetLanguage', fallback=None))
+        raise CommandInfo('%s' % self.dialogue.get(langconf.get('User', author.id, fallback=self.config.server_language_mode), 'Dialog_NoLanguage', fallback=None))
 
     async def on_message(self, message):
 
@@ -1504,16 +1474,13 @@ class MusicBot(discord.Client):
         except CommandError as e:
             await self.send_message(message.channel, '```\n%s\n```' % e.message)
 
-        except CommandInfo as e: #X4: Custom exception for non-warning end of function
-            await self.send_message(message.channel, '%s' % e.message) #X4: Style of output message
+        #X4: Custom exception for non-warning end of function
+        except CommandInfo as e:
+            await self.send_message(message.channel, '%s' % e.message)
 
         except:
             await self.send_message(message.channel, '```\n%s\n```' % traceback.format_exc())
             traceback.print_exc()
-
-"""class Author: #X4: on_ready call summon without author argument
-    def __init__(self, **kwargs):
-        self.__dict__.update(kwargs)"""
 
 if __name__ == '__main__':
     bot = MusicBot()

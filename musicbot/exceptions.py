@@ -3,7 +3,7 @@ class CommandError(Exception):
         self.message = message
         super().__init__()
 
-class CommandInfo(Exception): #X4: New type of used exception
+class CommandInfo(Exception):
     def __init__(self, message):
         self.message = message
         super().__init__()
