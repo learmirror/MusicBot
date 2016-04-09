@@ -262,6 +262,9 @@ class MusicBot(discord.Client):
     async def on_play(self, player, entry):
         await self.update_now_playing(entry)
         player.skip_state.reset()
+        if entry.url not in self.autoplaylist:
+            self.autoplaylist.append(entry.url.replace("http://", "https://"))
+            write_file(self.config.auto_playlist_file, self.autoplaylist)
 
         channel = entry.meta.get('channel', None)
         author = entry.meta.get('author', None)
@@ -382,11 +385,11 @@ class MusicBot(discord.Client):
     # noinspection PyMethodOverriding
     def run(self):
         try:
-            return super().run(self.config.username, self.config.password)
+            return super().run(self.config.token)
 
         except discord.errors.LoginFailure:
             raise HelpfulError("Bot cannot login, bad credentials.",
-                               "Fix your Username or Password in the options file.  "
+                               "Fix your Token in the options file.  "
                                "Remember that each field should be on their own line.")
 
 
@@ -410,7 +413,7 @@ class MusicBot(discord.Client):
 
         if self.servers:
             print('Server List:')
-            [self.safe_print(' - ' + s.name) for s in self.servers]
+            #[self.safe_print(' - ' + s.name) for s in self.servers]
         else:
             print("No servers have been joined yet.")
 
@@ -474,15 +477,25 @@ class MusicBot(discord.Client):
 
         # TODO: Get this to format nicely
         for att in dir(self):
-            if att.startswith('cmd_') and att != 'cmd_help':
+            if att.startswith('cmd_') and att != 'cmd_help' and att != 'cmd_h':
                 command_name = att.replace('cmd_', '').lower()
                 commands.append("{}{}".format(self.config.command_prefix, command_name))
 
         helpmsg += ", ".join(commands)
         helpmsg += "```"
-        helpmsg += "https://github.com/SexualRhinoceros/MusicBot/wiki/Commands-list"
+        helpmsg += "https://github.com/SexualRhinoceros/MusicBot/wiki/Commands-list + https://github.com/JumpJets/MusicBot" #X4: Added link to our repository if someone needed this fork"
 
         return Response(helpmsg, reply=True, delete_after=60)
+
+    async def cmd_h(self):
+        """
+        Usage:
+            {command_prefix}h
+
+        Prints a help message
+        """
+
+        return await self.cmd_help()
 
     async def cmd_whitelist(self, message, option, username):
         """
@@ -737,6 +750,54 @@ class MusicBot(discord.Client):
 
         return Response(reply_text, delete_after=25)
 
+    async def cmd_p(self, player, channel, author, permissions, leftover_args, song_url):
+        """
+        Usage:
+            {command_prefix}p song_link
+            {command_prefix}p text to search for
+
+        Adds the song to the playlist.  If a link is not provided, the first
+        result from a youtube search is added to the queue.
+        """
+
+        return await self.cmd_play(player, channel, author, permissions, leftover_args, song_url)
+
+    async def cmd_m(self, player, channel, author, permissions, leftover_args, song_url):
+        """
+        Usage:
+            {command_prefix}m song_link
+            {command_prefix}m text to search for
+
+        Adds the song to the playlist.  If a link is not provided, the first
+        result from a youtube search is added to the queue.
+        """
+
+        return await self.cmd_play(player, channel, author, permissions, leftover_args, song_url)
+
+    async def cmd_music(self, player, channel, author, permissions, leftover_args, song_url):
+        """
+        Usage:
+            {command_prefix}music song_link
+            {command_prefix}music text to search for
+
+        Adds the song to the playlist.  If a link is not provided, the first
+        result from a youtube search is added to the queue.
+        """
+
+        return await self.cmd_play(player, channel, author, permissions, leftover_args, song_url)
+
+    async def cmd_add(self, player, channel, author, permissions, leftover_args, song_url):
+        """
+        Usage:
+            {command_prefix}add song_link
+            {command_prefix}add text to search for
+
+        Adds the song to the playlist.  If a link is not provided, the first
+        result from a youtube search is added to the queue.
+        """
+
+        return await self.cmd_play(player, channel, author, permissions, leftover_args, song_url)
+
     async def _cmd_ytplaylist(self, player, channel, author, permissions, playlist_url):
         """
         Secret handler to use the async wizardry to make playlist queuing non-"blocking"
@@ -938,6 +999,25 @@ class MusicBot(discord.Client):
 
         return Response("Oh well :frowning:", delete_after=25)
 
+    async def cmd_s(self, player, channel, author, permissions, leftover_args):
+        """
+        Usage:
+            {command_prefix}s [service] [number] query
+
+        Searches a service for a video and adds it to the queue.
+        - service: any one of the following services:
+            - youtube (yt) (default if unspecified)
+            - soundcloud (sc)
+            - yahoo (yh)
+        - number: return a number of video results and waits for user to choose one
+          - defaults to 1 if unspecified
+          - note: If your search query starts with a number,
+                  you must put your query in quotes
+            - ex: {command_prefix}search 2 "I ran seagulls"
+        """
+
+        return await self.cmd_search(player, channel, author, permissions, leftover_args)
+
     async def cmd_np(self, player, channel):
         """
         Usage:
@@ -1102,6 +1182,16 @@ class MusicBot(discord.Client):
                 reply=True
             )
 
+    async def cmd_d(self, player, channel, author, message, voice_channel):
+        """
+        Usage:
+            {command_prefix}d
+
+        Skips the current song when enough votes are cast, or by the bot owner.
+        """
+
+        return await self.cmd_skip(player, channel, author, message, voice_channel) 
+
     async def cmd_volume(self, message, player, new_volume=None):
         """
         Usage:
@@ -1143,6 +1233,17 @@ class MusicBot(discord.Client):
             else:
                 raise CommandError(
                     'Unreasonable volume provided: {}%. Provide a value between 1 and 100.'.format(new_volume))
+
+    async def cmd_v(self, message, player, new_volume=None):
+        """
+        Usage:
+            {command_prefix}v (+/-)[volume]
+
+        Sets the playback volume. Accepted values are from 1 to 100.
+        Putting + or - before the volume will make the volume change relative to the current volume.
+        """
+
+        return await self.cmd_volume(message, player, new_volume)
 
     async def cmd_queue(self, channel, player):
         """
@@ -1191,6 +1292,64 @@ class MusicBot(discord.Client):
 
         message = '\n'.join(lines)
         return Response(message, delete_after=30)
+
+    async def cmd_q(self, channel, player):
+        """
+        Usage:
+            {command_prefix}q
+
+        Prints the current song queue.
+        """
+
+        return await self.cmd_queue(channel, player)
+
+    async def cmd_remove(self, author, player, channel):
+        """
+        Usage {command_prefix}remove
+        Remove this URL into auto playlist.
+        """
+
+        player = await self.get_player(channel)
+
+        if player.current_entry.url in self.autoplaylist:
+            self.autoplaylist.remove(player.current_entry.url)
+            write_file(self.config.auto_playlist_file, self.autoplaylist)
+        else:
+            raise CommandInfo('%s not in playlist. Can\'t remove it.' % player.current_entry.title)
+
+        return Response("Song **%s** **__removed__** from rotation. Use command `undo` to back this track." % player.current_entry.title, delete_after=25)
+
+    async def cmd_rem(self, author, player, channel):
+        """
+        Usage {command_prefix}rem
+        Remove this URL into auto playlist.
+        """
+
+        return await self.cmd_remove(channel, player)
+
+    async def handle_undo(self, author, player, channel):
+        """
+        Usage {command_prefix}undo
+        Undo removed URL.
+        """
+
+        player = await self.get_player(channel)
+
+        if player.current_entry.url not in self.autoplaylist:
+            self.autoplaylist.append(player.current_entry.url)
+            write_file(self.config.auto_playlist_file, self.autoplaylist)
+        else:
+            raise CommandInfo('No need to undo. **%s** Already have in playlist.' % player.current_entry.title)
+
+        return Response("**Undo successful.** Song **%s** is back from rotation." % player.current_entry.title, delete_after=15)
+
+    async def handle_u(self, author, player, channel):
+        """
+        Usage {command_prefix}u
+        Undo removed URL.
+        """
+
+        return await self.cmd_undo(channel, player)
 
     @owner_only  # TODO: improve this (users only clean up theirs, arg for all messages, etc, more control)
     async def cmd_clean(self, message, channel, author, amount):
