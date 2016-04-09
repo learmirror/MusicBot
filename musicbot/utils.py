@@ -1,16 +1,18 @@
 import re
+import decimal
 import unicodedata
 
 _USER_ID_MATCH = re.compile(r'<@(\d+)>')
 
 
-def load_file(filename):
+def load_file(filename, skip_commented_lines=True, comment_char='#'):
     try:
         with open(filename) as f:
             results = []
             for line in f:
                 line = line.strip()
-                if line:
+
+                if line and not (skip_commented_lines and line.startswith(comment_char)):
                     results.append(line)
 
             return results
@@ -37,3 +39,7 @@ def slugify(value):
     value = unicodedata.normalize('NFKD', value).encode('ascii', 'ignore').decode('ascii')
     value = re.sub('[^\w\s-]', '', value).strip().lower()
     return re.sub('[-\s]+', '-', value)
+
+
+def sane_round_int(x):
+    return int(decimal.Decimal(x).quantize(1, rounding=decimal.ROUND_HALF_UP))

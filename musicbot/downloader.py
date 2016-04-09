@@ -1,18 +1,21 @@
-from concurrent.futures import ThreadPoolExecutor
-
 import functools
 import youtube_dl
+
+from concurrent.futures import ThreadPoolExecutor
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
     'extractaudio': True,
-    'audioformat': "mp3",
-    'outtmpl': '%(id)s',
+    'audioformat': 'mp3',
+    'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
+    'restrictfilenames': True,
     'noplaylist': True,
     'nocheckcertificate': True,
     'ignoreerrors': True,
     'quiet': True,
-    'no_warnings': True
+    'no_warnings': True,
+    'default_search': 'auto',
+    'source_address': '0.0.0.0'
 }
 
 thread_pool = ThreadPoolExecutor(max_workers=2)

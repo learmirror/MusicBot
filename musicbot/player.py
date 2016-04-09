@@ -1,16 +1,15 @@
 import os
 import time
+import asyncio
 import traceback
 
 from array import array
-from asyncio import Lock
 from enum import Enum
 
-from .constants import DEFAULT_VOLUME
 from .lib.event_emitter import EventEmitter
 
 
-class PatchedBuff(object):
+class PatchedBuff:
     """
         PatchedBuff monkey patches a readable object, allowing you to vary what the volume is as the song is playing.
     """
@@ -48,19 +47,19 @@ class MusicPlayerState(Enum):
 
 
 class MusicPlayer(EventEmitter):
-    def __init__(self, bot, voice_client, playlist, volume=DEFAULT_VOLUME):
+    def __init__(self, bot, voice_client, playlist):
         super().__init__()
         self.bot = bot
         self.loop = bot.loop
         self.voice_client = voice_client
         self.playlist = playlist
         self.playlist.on('entry-added', self.on_entry_added)
+        self.volume = bot.config.default_volume
 
-        self._play_lock = Lock()
+        self._play_lock = asyncio.Lock()
         self._current_player = None
         self._current_entry = None
         self.state = MusicPlayerState.STOPPED
-        self.volume = volume
 
     def on_entry_added(self, playlist, entry):
         if self.is_stopped:
@@ -84,41 +83,70 @@ class MusicPlayer(EventEmitter):
 
         raise ValueError('Cannot resume playback from state %s' % self.state)
 
+    def pause(self):
+        if self.is_playing:
+            self.state = MusicPlayerState.PAUSED
+
+            if self._current_player:
+                self._current_player.pause()
+
+            self.emit('pause', player=self, entry=self.current_entry)
+            return
+
+        elif self.is_paused:
+            return
+
+        raise ValueError('Cannot pause a MusicPlayer in state %s' % self.state)
+
     def _playback_finished(self):
         entry = self._current_entry
+
+        if self._current_player:
+            self._current_player.after = None
+            self._current_player.stop()
+
         self._current_entry = None
         self._current_player = None
 
         if not self.is_stopped:
             self.play(_continue=True)
 
-        if not self.bot.config.save_videos:
+        if not self.bot.config.save_videos and entry:
             if any([entry.filename == e.filename for e in self.playlist.entries]):
                 print("[Config:SaveVideos] Skipping deletion, found song in queue")
 
             else:
                 # print("[Config:SaveVideos] Deleting file: %s" % os.path.relpath(entry.filename))
-
-                try:
-                    os.unlink(entry.filename)
-                except PermissionError as e:
-                    if e.winerror == 32: # File is in use
-                        print("File is locked")
-
-                        for x in range(25):
-                            try:
-                                os.unlink(entry.filename)
-                                break
-                            except PermissionError as e:
-                                if e.winerror == 32:
-                                    time.sleep(0.2)
-                                    if x == 24:
-                                        print("[Config:SaveVideos] Could not delete file {}, giving up and moving on".format(
-                                            os.path.relpath(entry.filename)))
-                    else:
-                        traceback.print_exc()
+                asyncio.ensure_future(self._delete_file(entry.filename))
 
         self.emit('finished-playing', player=self, entry=entry)
+
+    def _kill_current_player(self):
+        if self._current_player:
+            if self.is_paused:
+                self.resume()
+
+            self._current_player.stop()
+            self._current_player = None
+            return True
+
+        return False
+
+    async def _delete_file(self, filename):
+        for x in range(30):
+            try:
+                os.unlink(filename)
+                break
+            except PermissionError as e:
+                if e.winerror == 32:  # File is in use
+                    await asyncio.sleep(0.25)
+            except Exception as e:
+                traceback.print_exc()
+                print("Error trying to delete " + filename)
+                break
+        else:
+            print("[Config:SaveVideos] Could not delete file {}, giving up and moving on".format(
+                os.path.relpath(filename)))
 
     def play(self, _continue=False):
         self.loop.create_task(self._play(_continue=_continue))
@@ -147,9 +175,6 @@ class MusicPlayer(EventEmitter):
                     self.stop()
                     return
 
-                self.state = MusicPlayerState.PLAYING
-                self._current_entry = entry
-
                 # In-case there was a player, kill it. RIP.
                 self._kill_current_player()
 
@@ -158,8 +183,12 @@ class MusicPlayer(EventEmitter):
                     # Threadsafe call soon, b/c after will be called from the voice playback thread.
                     after=lambda: self.loop.call_soon_threadsafe(self._playback_finished)
                 ))
-                self._current_player.start()
 
+                # I need to add ytdl hooks and set a DOWNLOADING state
+                self.state = MusicPlayerState.PLAYING
+                self._current_entry = entry
+
+                self._current_player.start()
                 self.emit('play', player=self, entry=entry)
 
     def _monkeypatch_player(self, player):
@@ -190,30 +219,6 @@ class MusicPlayer(EventEmitter):
         #       Correct calculation should be bytes_read/192k
         #       192k AKA sampleRate * (bitDepth / 8) * channelCount
         #       Change frame_count to bytes_read in the PatchedBuff
-
-    def pause(self):
-        if self.is_playing:
-            self.state = MusicPlayerState.PAUSED
-
-            if self._current_player:
-                self._current_player.pause()
-
-            self.emit('pause', player=self, entry=self.current_entry)
-            return
-
-        elif self.is_paused:
-            return
-
-        raise ValueError('Cannot pause a MusicPlayer in state %s' % self.state)
-
-    def _kill_current_player(self):
-        if self._current_player:
-            self._current_player.stop()
-            self._current_player = None
-            return True
-
-        return False
-
 
 # if redistributing ffmpeg is an issue, it can be downloaded from here:
 #  - http://ffmpeg.zeranoe.com/builds/win32/static/ffmpeg-latest-win32-static.7z

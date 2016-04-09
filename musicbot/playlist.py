@@ -1,16 +1,16 @@
-import asyncio
-import collections
-import itertools
-import datetime
 import os
-import os.path
+import asyncio
+import datetime
 import traceback
+
+from hashlib import md5
 from random import shuffle
+from itertools import islice
+from collections import deque
 
 from .constants import AUDIO_CACHE_PATH
-from .downloader import extract_info
+from .downloader import extract_info, ytdl
 from .exceptions import ExtractionError
-from .utils import slugify
 from .lib.event_emitter import EventEmitter
 
 
@@ -19,10 +19,14 @@ class Playlist(EventEmitter):
         A playlist is manages the list of songs that will be played.
     """
 
-    def __init__(self, loop):
+    def __init__(self, bot):
         super().__init__()
-        self.loop = loop
-        self.entries = collections.deque()
+        self.bot = bot
+        self.loop = bot.loop
+        self.entries = deque()
+
+    def __iter__(self):
+        return iter(self.entries)
 
     def shuffle(self):
         shuffle(self.entries)
@@ -46,9 +50,9 @@ class Playlist(EventEmitter):
         entry = PlaylistEntry(
             self,
             song_url,
-            info['id'],
             info['title'],
-            info.get('duration', 0),
+            info.get('duration', 0) or 0,
+            ytdl.prepare_filename(info),
             **meta
         )
         self._add_entry(entry)
@@ -63,7 +67,7 @@ class Playlist(EventEmitter):
             :param playlist_url: The playlist url to be cut into individual urls and added to the playlist
             :param meta: Any additional metadata to add to the playlist entry
         """
-        position = len(self.entries)+1
+        position = len(self.entries) + 1
         entry_list = []
 
         info = await extract_info(self.loop, playlist_url, download=False)
@@ -78,9 +82,9 @@ class Playlist(EventEmitter):
                     entry = PlaylistEntry(
                         self,
                         items['webpage_url'],
-                        items['id'],
                         items['title'],
-                        items.get('duration', 0),
+                        items.get('duration', 0) or 0,
+                        ytdl.prepare_filename(info),
                         **meta
                     )
 
@@ -99,6 +103,43 @@ class Playlist(EventEmitter):
             print("Skipped %s bad entries" % baditems)
 
         return entry_list, position
+
+    async def async_process_youtube_playlist(self, playlist_url, **meta):
+        """
+            Processes youtube playlists links from `playlist_url` in a questionable, async fashion.
+
+            :param playlist_url: The playlist url to be cut into individual urls and added to the playlist
+            :param meta: Any additional metadata to add to the playlist entry
+        """
+
+        info = await extract_info(self.loop, playlist_url, download=False, process=False)
+
+        if not info:
+            raise ExtractionError('Could not extract information from %s' % playlist_url)
+
+        gooditems = []
+        baditems = 0
+        for entry_data in info['entries']:
+            if entry_data:
+                baseurl = info['webpage_url'].split('playlist?list=')[0]
+                song_url = baseurl + 'watch?v=%s' % entry_data['id']
+
+                try:
+                    entry, elen = await self.add_entry(song_url, **meta)
+                    gooditems.append(entry)
+                except ExtractionError:
+                    baditems += 1
+                except Exception as e:
+                    baditems += 1
+                    print("There was an error adding the song %s: %s: %s" % (entry_data['id'], e.__class__, e))
+
+            else:
+                baditems += 1
+
+        if baditems:
+            print("Skipped %s bad entries" % baditems)
+
+        return gooditems
 
     def _add_entry(self, entry):
         self.entries.append(entry)
@@ -137,26 +178,28 @@ class Playlist(EventEmitter):
         """
             (very) Roughly estimates the time till the queue will 'position'
         """
-        estimated_time = sum([e.duration for e in list(itertools.islice(self.entries, 0, position-1))])
+        estimated_time = sum([e.duration for e in islice(self.entries, position - 1)])
 
         # When the player plays a song, it eats the first playlist item, so we just have to add the time back
-        if not player.is_stopped:
+        if not player.is_stopped and player.current_entry:
             estimated_time += player.current_entry.duration - player.progress
 
         return datetime.timedelta(seconds=estimated_time)
 
-    def __iter__(self):
-        return iter(self.entries)
+    def count_for_user(self, user):
+        return sum(1 for e in self.entries if e.meta.get('author', None) == user)
 
 
-class PlaylistEntry(object):
-    def __init__(self, playlist, url, id, title, duration=0, **meta):
+class PlaylistEntry:
+    def __init__(self, playlist, url, title, duration=0, expected_filename=None, **meta):
         self.playlist = playlist
         self.url = url
-        self.id = id
         self.title = title
         self.duration = duration
+        self.expected_filename = expected_filename
         self.meta = meta
+
+        self.filename = None
         self._is_downloading = False
         self._waiting_futures = []
 
@@ -165,21 +208,26 @@ class PlaylistEntry(object):
         if self._is_downloading:
             return False
 
-        return os.path.isfile(self.filename)
+        return bool(self.filename)
 
-    @property
-    def filename(self):
-        """
-        The filename of where this playlist entry will exist.
-        """
-        return os.path.join(AUDIO_CACHE_PATH, '%s.mp3' % self.slug)
+    @classmethod
+    def from_json(cls, data):
+        pass
 
-    @property
-    def slug(self):
-        """
-        Returns a slug generated from the ID and title of this PlaylistEntry
-        """
-        return slugify('%s-%s' % (self.id, self.title))
+    def to_json(self):
+        data = {
+            'url': self.url,
+            'title': self.title,
+            'duration': self.duration,
+            # I think filename might have to be regenerated
+
+            # I think these are only channels and members (author)
+            'meta': {i: {'type': self.meta[i].__class__.__name__, 'id': self.meta[i].id} for i in self.meta}
+            # Actually I think I can just getattr instead, getattr(discord, type)
+
+            # I do need to test if these can be pickled properly
+        }
+        return data
 
     async def _download(self):
         if self._is_downloading:
@@ -187,20 +235,34 @@ class PlaylistEntry(object):
 
         self._is_downloading = True
         try:
-            result = await extract_info(self.playlist.loop, self.url, download=True)
-            filename = self.filename
-
-            # If the file existed, we're going to remove it to overwrite.
-            if os.path.isfile(filename):
-                os.unlink(filename)
-
             # Ensure the folder that we're going to move into exists.
-            directory = os.path.dirname(filename)
-            if not os.path.exists(directory):
-                os.makedirs(directory)
+            if not os.path.exists(AUDIO_CACHE_PATH):
+                os.makedirs(AUDIO_CACHE_PATH)
 
-            # Move the temporary file to it's final location.
-            os.rename(result['id'], self.filename)
+            # figure out if the filename without the hash is already in the cache folder
+            wouldbe_fname_noex = self.expected_filename.rsplit('.', 1)[0]
+            flistdir = [f.rsplit('-', 1)[0] for f in os.listdir(AUDIO_CACHE_PATH)]
+
+            # we don't check for files downloaded with the generic extractor (direct links) since they're
+            # the entire reason we're adding a hash to the filename to begin with (filename uniqueness)
+            if wouldbe_fname_noex in flistdir and not wouldbe_fname_noex.startswith('generic'):
+                self.filename = os.path.join(
+                    AUDIO_CACHE_PATH,
+                    os.listdir(AUDIO_CACHE_PATH)[flistdir.index(wouldbe_fname_noex)])
+                # print("Found:\n    {}\nFor:\n    {}".format(self.filename, self.expected_filename))
+
+            else:
+                print("[Download] Started:", self.url)
+                result = await extract_info(self.playlist.loop, self.url, download=True)
+                print("[Download] Complete:", self.url)
+
+                # insert the 8 last characters of the file hash to the file name to ensure uniqueness
+                unhashed_fname = ytdl.prepare_filename(result)
+                unmoved_fname = md5sum(unhashed_fname, 8).join('-.').join(unhashed_fname.rsplit('.', 1))
+                self.filename = os.path.join(AUDIO_CACHE_PATH, unmoved_fname)
+
+                # Move the temporary file to it's final location.
+                os.replace(ytdl.prepare_filename(result), self.filename)
 
             # Trigger ready callbacks.
             self._for_each_future(lambda future: future.set_result(self))
@@ -250,3 +312,11 @@ class PlaylistEntry(object):
 
     def __hash__(self):
         return id(self)
+
+
+def md5sum(filename, limit=0):
+    fhash = md5()
+    with open(filename, "rb") as f:
+        for chunk in iter(lambda: f.read(8192), b""):
+            fhash.update(chunk)
+    return fhash.hexdigest()[-limit:]
