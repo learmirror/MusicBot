@@ -2,8 +2,7 @@ import configparser
 
 
 class ConfigDefaults:
-    username = None
-    password = None
+    token = None
 
     owner_id = None
     command_prefix = '!'
@@ -64,8 +63,7 @@ class Config:
 
         # Maybe wrap these in a helper and change ConfigDefaults names to their config value
 
-        self.username = config.get('Credentials', 'Username', fallback=ConfigDefaults.username)
-        self.password = config.get('Credentials', 'Password', fallback=ConfigDefaults.password)
+        self.token = config.get('Credentials', 'Token', fallback=ConfigDefaults.token)
 
         self.owner_id = config.get('Permissions', 'OwnerID', fallback=ConfigDefaults.owner_id)
         self.command_prefix = config.get('Chat', 'CommandPrefix', fallback=ConfigDefaults.command_prefix)
@@ -86,8 +84,8 @@ class Config:
         self.auto_playlist_file = config.get('Files', 'AutoPlaylistFile', fallback=ConfigDefaults.auto_playlist_file)
 
         # Validation logic for bot settings.
-        if not self.username or not self.password:
-            raise ValueError('A username or password was not specified in the configuration file.')
+        if not self.token:
+            raise ValueError('A token was not specified in the configuration file.')
 
         if not self.owner_id:
             raise ValueError("An owner is not specified in the configuration file")
