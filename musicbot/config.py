@@ -3,6 +3,7 @@ import configparser
 
 class ConfigDefaults:
     token = None
+    name = 'MusicBot'
 
     owner_id = None
     command_prefix = '!'
@@ -64,6 +65,7 @@ class Config:
         # Maybe wrap these in a helper and change ConfigDefaults names to their config value
 
         self.token = config.get('Credentials', 'Token', fallback=ConfigDefaults.token)
+        self.name = config.get('Credentials', 'Name', fallback=ConfigDefaults.name)
 
         self.owner_id = config.get('Permissions', 'OwnerID', fallback=ConfigDefaults.owner_id)
         self.command_prefix = config.get('Chat', 'CommandPrefix', fallback=ConfigDefaults.command_prefix)

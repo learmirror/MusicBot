@@ -7,6 +7,7 @@ import inspect
 import discord
 import asyncio
 import traceback
+import aiohttp
 
 from discord import utils
 from discord.object import Object
@@ -413,7 +414,7 @@ class MusicBot(discord.Client):
 
         if self.servers:
             print('Server List:')
-            #[self.safe_print(' - ' + s.name) for s in self.servers]
+            [self.safe_print(' - ' + s.name) for s in self.servers]
         else:
             print("No servers have been joined yet.")
 
@@ -1432,6 +1433,42 @@ class MusicBot(discord.Client):
 
         await self.send_message(author, '\n'.join(lines))
         return Response(":mailbox_with_mail:", delete_after=20)
+
+    async def cmd_setavatar(self, url):
+        '''
+        Usage:
+            {command_prefix}setavatar <url_to_image>
+
+        Update bot avatar.
+        '''
+
+        with aiohttp.ClientSession() as session:
+            async with session.get(url) as resp:
+                if resp.status == 200:
+                    get = await resp.read()
+                    await MusicBot.edit_profile(self, avatar=get)
+                    return Response("Avatar changed.", delete_after=20)
+                elif resp.status == 502:
+                    return Response("Gateway error. Try later.", delete_after=20)
+                elif resp.status == 404:
+                    return Response("Wrong link to image.", delete_after=20)
+                elif resp.status == 500:
+                    return Response("Domain is dead (500 error).", delete_after=20)
+                else:
+                    return Response("*Something is broken...*", delete_after=20)
+
+    async def cmd_setname(self, newname):
+        '''
+        Usage:
+            {command_prefix}setname <bot_name | Default>
+
+        Update bot name (if empty, use default, also limit is 2 times per hour).
+        '''
+
+        if not newname or newname == 'Default' or newname == 'None':
+            newname = self.config.name
+        await MusicBot.edit_profile(self, username=newname)
+        return Response("Name changed.", delete_after=20)
 
     async def on_message(self, message):
         message_content = message.content.strip()
