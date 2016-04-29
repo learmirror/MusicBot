@@ -1,5 +1,6 @@
 import os
 import asyncio
+import aiohttp
 import datetime
 import traceback
 
@@ -8,8 +9,6 @@ from random import shuffle
 from itertools import islice
 from collections import deque
 
-from .constants import AUDIO_CACHE_PATH
-from .downloader import extract_info, ytdl
 from .exceptions import ExtractionError
 from .lib.event_emitter import EventEmitter
 
@@ -23,6 +22,7 @@ class Playlist(EventEmitter):
         super().__init__()
         self.bot = bot
         self.loop = bot.loop
+        self.downloader = bot.downloader
         self.entries = deque()
 
     def __iter__(self):
@@ -43,16 +43,42 @@ class Playlist(EventEmitter):
             :param song_url: The song url to add to the playlist.
             :param meta: Any additional metadata to add to the playlist entry.
         """
-        info = await extract_info(self.loop, song_url, download=False)
+
+        try:
+            info = await self.downloader.extract_info(self.loop, song_url, download=False)
+        except Exception as e:
+            raise ExtractionError('Could not extract information from {}\n\n{}'.format(song_url, e))
+
         if not info:
             raise ExtractionError('Could not extract information from %s' % song_url)
+
+        # TODO: Sort out what happens next when this happens
+        # if info.get('_type', None) == 'playlist':
+        #     return await self.import_from(song_url, **meta)
+
+        if info['extractor'] == 'generic':
+            try:
+                content_type = await get_content_type(self.bot.session, info['url'])
+                print("Got content type", content_type)
+
+            except Exception as e:
+                print("[Warning] Failed to get content type for url " + song_url)
+                print(e)
+                content_type = None
+
+            if content_type:
+                if content_type.startswith(('application/', 'image/')):
+                    raise ExtractionError("Invalid content type \"%s\" for url %s" % (content_type, song_url))
+
+                elif not content_type.startswith(('audio/', 'video/')):
+                    print("[Warning] Questionable content type \"%s\" for url %s" % (content_type, song_url))
 
         entry = PlaylistEntry(
             self,
             song_url,
-            info['title'],
+            info.get('title', 'Untitled'),
             info.get('duration', 0) or 0,
-            ytdl.prepare_filename(info),
+            self.downloader.ytdl.prepare_filename(info),
             **meta
         )
         self._add_entry(entry)
@@ -70,10 +96,19 @@ class Playlist(EventEmitter):
         position = len(self.entries) + 1
         entry_list = []
 
-        info = await extract_info(self.loop, playlist_url, download=False)
+        try:
+            info = await self.downloader.safe_extract_info(self.loop, playlist_url, download=False)
+        except Exception as e:
+            raise ExtractionError('Could not extract information from {}\n\n{}'.format(playlist_url, e))
 
         if not info:
             raise ExtractionError('Could not extract information from %s' % playlist_url)
+
+        # Once again, the generic extractor fucks things up.
+        if info.get('extractor', None) == 'generic':
+            url_field = 'url'
+        else:
+            url_field = 'webpage_url'
 
         baditems = 0
         for items in info['entries']:
@@ -81,10 +116,10 @@ class Playlist(EventEmitter):
                 try:
                     entry = PlaylistEntry(
                         self,
-                        items['webpage_url'],
+                        items[url_field],
                         items['title'],
                         items.get('duration', 0) or 0,
-                        ytdl.prepare_filename(info),
+                        self.downloader.ytdl.prepare_filename(items),
                         **meta
                     )
 
@@ -112,7 +147,11 @@ class Playlist(EventEmitter):
             :param meta: Any additional metadata to add to the playlist entry
         """
 
-        info = await extract_info(self.loop, playlist_url, download=False, process=False)
+
+        try:
+            info = await self.downloader.safe_extract_info(self.loop, playlist_url, download=False, process=False)
+        except Exception as e:
+            raise ExtractionError('Could not extract information from {}\n\n{}'.format(playlist_url, e))
 
         if not info:
             raise ExtractionError('Could not extract information from %s' % playlist_url)
@@ -131,7 +170,8 @@ class Playlist(EventEmitter):
                     baditems += 1
                 except Exception as e:
                     baditems += 1
-                    print("There was an error adding the song %s: %s: %s" % (entry_data['id'], e.__class__, e))
+                    print("There was an error adding the song {}: {}: {}\n".format(
+                        entry_data['id'], e.__class__.__name__, e))
 
             else:
                 baditems += 1
@@ -202,6 +242,7 @@ class PlaylistEntry:
         self.filename = None
         self._is_downloading = False
         self._waiting_futures = []
+        self.download_folder = self.playlist.downloader.download_folder
 
     @property
     def is_downloaded(self):
@@ -229,6 +270,7 @@ class PlaylistEntry:
         }
         return data
 
+    # noinspection PyTypeChecker
     async def _download(self):
         if self._is_downloading:
             return
@@ -236,42 +278,92 @@ class PlaylistEntry:
         self._is_downloading = True
         try:
             # Ensure the folder that we're going to move into exists.
-            if not os.path.exists(AUDIO_CACHE_PATH):
-                os.makedirs(AUDIO_CACHE_PATH)
+            if not os.path.exists(self.download_folder):
+                os.makedirs(self.download_folder)
 
-            # figure out if the filename without the hash is already in the cache folder
-            wouldbe_fname_noex = self.expected_filename.rsplit('.', 1)[0]
-            flistdir = [f.rsplit('-', 1)[0] for f in os.listdir(AUDIO_CACHE_PATH)]
+            # self.expected_filename: audio_cache\youtube-9R8aSKwTEMg-NOMA_-_Brain_Power.m4a
+            extractor = os.path.basename(self.expected_filename).split('-')[0]
 
-            # we don't check for files downloaded with the generic extractor (direct links) since they're
-            # the entire reason we're adding a hash to the filename to begin with (filename uniqueness)
-            if wouldbe_fname_noex in flistdir and not wouldbe_fname_noex.startswith('generic'):
-                self.filename = os.path.join(
-                    AUDIO_CACHE_PATH,
-                    os.listdir(AUDIO_CACHE_PATH)[flistdir.index(wouldbe_fname_noex)])
-                # print("Found:\n    {}\nFor:\n    {}".format(self.filename, self.expected_filename))
+            # the generic extractor requires special handling
+            if extractor == 'generic':
+                # print("Handling generic")
+                flistdir = [f.rsplit('-', 1)[0] for f in os.listdir(self.download_folder)]
+                expected_fname_noex, fname_ex = os.path.basename(self.expected_filename).rsplit('.', 1)
+
+                if expected_fname_noex in flistdir:
+                    try:
+                        with aiohttp.Timeout(5):
+                            async with self.playlist.bot.session.head(self.url) as resp:
+                                rsize = int(resp.headers['CONTENT-LENGTH'])
+                    except:
+                        rsize = 0
+
+                    lfile = os.path.join(
+                        self.download_folder,
+                        os.listdir(self.download_folder)[flistdir.index(expected_fname_noex)]
+                    )
+
+                    # print("Resolved %s to %s" % (self.expected_filename, lfile))
+                    lsize = os.path.getsize(lfile)
+                    # print("Remote size: %s Local size: %s" % (rsize, lsize))
+
+                    if lsize != rsize:
+                        await self._really_download(hash=True)
+                    else:
+                        print("[Download] Cached:", self.url)
+                        self.filename = lfile
+
+                else:
+                    await self._really_download(hash=True)
 
             else:
-                print("[Download] Started:", self.url)
-                result = await extract_info(self.playlist.loop, self.url, download=True)
-                print("[Download] Complete:", self.url)
+                # print("Handling " + extractor)
+                flistdir = [f.rsplit('.', 1)[0] for f in os.listdir(self.download_folder)]
+                expected_fname_noex = os.path.basename(self.expected_filename.rsplit('.', 1)[0])
 
-                # insert the 8 last characters of the file hash to the file name to ensure uniqueness
-                unhashed_fname = ytdl.prepare_filename(result)
-                unmoved_fname = md5sum(unhashed_fname, 8).join('-.').join(unhashed_fname.rsplit('.', 1))
-                self.filename = os.path.join(AUDIO_CACHE_PATH, unmoved_fname)
-
-                # Move the temporary file to it's final location.
-                os.replace(ytdl.prepare_filename(result), self.filename)
+                if expected_fname_noex in flistdir:
+                    self.filename = self.expected_filename
+                    print("[Download] Cached:", self.url)
+                else:
+                    await self._really_download()
 
             # Trigger ready callbacks.
             self._for_each_future(lambda future: future.set_result(self))
 
         except Exception as e:
+            traceback.print_exc()
             self._for_each_future(lambda future: future.set_exception(e))
 
         finally:
             self._is_downloading = False
+
+    async def _really_download(self, *, hash=False):
+        print("[Download] Started:", self.url)
+
+        try:
+            result = await self.playlist.downloader.extract_info(self.playlist.loop, self.url, download=True)
+        except Exception as e:
+            raise ExtractionError(e)
+
+        print("[Download] Complete:", self.url)
+
+        if result is None:
+            raise ExtractionError("ytdl broke and hell if I know why")
+            # What the fuck do I do now?
+
+        self.filename = unhashed_fname = self.playlist.downloader.ytdl.prepare_filename(result)
+
+        if hash:
+            # insert the 8 last characters of the file hash to the file name to ensure uniqueness
+            self.filename = md5sum(unhashed_fname, 8).join('-.').join(unhashed_fname.rsplit('.', 1))
+
+            if os.path.isfile(self.filename):
+                # Oh bother it was actually there.
+                os.unlink(unhashed_fname)
+            else:
+                # Move the temporary file to it's final location.
+                os.rename(unhashed_fname, self.filename)
+
 
     def get_ready_future(self):
         """
@@ -320,3 +412,8 @@ def md5sum(filename, limit=0):
         for chunk in iter(lambda: f.read(8192), b""):
             fhash.update(chunk)
     return fhash.hexdigest()[-limit:]
+
+async def get_content_type(session, url):
+    with aiohttp.Timeout(5):
+        async with session.head(url) as response:
+            return response.headers.get('CONTENT-TYPE')
