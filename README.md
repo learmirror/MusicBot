@@ -1,11 +1,12 @@
-# MusicBot *(RadioBot)*
+# MusicBot
 
 MusicBot is a Discord music bot written in [Python](https://www.python.org "Python homepage"). It plays requested songs and if the queue becomes empty it will play through a list of existing songs.
 
-### How do I set it up? *(Rhino tutorials)*
+### How do I set it up?
 
 - [Windows Tutorial](https://github.com/SexualRhinoceros/MusicBot/wiki/Installation-guide-for-Windows-7-and-up "Windows instructions")
 - [Linux Tutorial](https://github.com/SexualRhinoceros/MusicBot/wiki/Installation-guide-for-Ubuntu-14.04-and-other-versions "Linux instructions")
+- [Docker Tutorial](https://github.com/SexualRhinoceros/MusicBot/wiki/Installation-guide-for-Docker)
 - OSX Tutorial - coming soon, whenever someone decides to make one.
 
 ### Commands
@@ -33,6 +34,6 @@ Some frequently asked questions are listed on the wiki [here](https://github.com
 
 > To login you need only **token** (create it here: [Discord Applications](https://discordapp.com/developers/applications/me "Discord Applications"))
 
-> New commands: h (help), p / music / m / add (play), d (skip), s (search), undo, remove / rem, q (queue), v (volume).
+> New commands: h (help), p / music / m / add (play), d (skip), s (search), remove / rem, undo, q (queue), v (volume), setavatar, setname, unskip.
 
-> New functional: bot can play at multiple servers (no need multiple accounts or program instances), every song now will adding in autoplaylist, if you no need this, you may remove it or undo (after remove).
+> New functional: bot can play at multiple servers (no need multiple accounts or program instances), every song now will adding in autoplaylist, if you no need this, you may remove it or undo (after remove), np show url, unskipping system.
