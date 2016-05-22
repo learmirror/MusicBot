@@ -6,34 +6,6 @@ import configparser
 from .exceptions import HelpfulError
 
 
-class ConfigDefaults:
-    token = None
-    name = 'MusicBot'
-
-    owner_id = None
-    command_prefix = '!'
-    bound_channels = set()
-    autojoin_channels = set()
-
-    default_volume = 0.15
-    white_list_check = False
-    skips_required = 4
-    skip_ratio_required = 0.5
-    save_videos = True
-    now_playing_mentions = False
-    auto_summon = True
-    auto_playlist = True
-    auto_pause = True
-    delete_messages = True
-    delete_invoking = False
-    debug_mode = False
-
-    options_file = 'config/options.ini'
-    blacklist_file = 'config/blacklist.txt'
-    whitelist_file = 'config/whitelist.txt'
-    auto_playlist_file = 'config/autoplaylist.txt' # this will change when I add playlists
-
-
 class Config:
     def __init__(self, config_file):
         self.config_file = config_file
@@ -84,7 +56,9 @@ class Config:
                 preface="An error has occured parsing the config:\n"
             )
 
-        self.token = config.get('Credentials', 'Token', fallback=ConfigDefaults.token)
+        self._email = config.get('Credentials', 'Email', fallback=ConfigDefaults.email)
+        self._password = config.get('Credentials', 'Password', fallback=ConfigDefaults.password)
+        self._login_token = config.get('Credentials', 'Token', fallback=ConfigDefaults.token)
         self.name = config.get('Credentials', 'Name', fallback=ConfigDefaults.name)
 
         self.auth = None
@@ -95,7 +69,6 @@ class Config:
         self.autojoin_channels = config.get('Chat', 'AutojoinChannels', fallback=ConfigDefaults.autojoin_channels)
 
         self.default_volume = config.getfloat('MusicBot', 'DefaultVolume', fallback=ConfigDefaults.default_volume)
-        self.white_list_check = config.getboolean('MusicBot', 'WhiteListCheck', fallback=ConfigDefaults.white_list_check)
         self.skips_required = config.getint('MusicBot', 'SkipsRequired', fallback=ConfigDefaults.skips_required)
         self.skip_ratio_required = config.getfloat('MusicBot', 'SkipRatio', fallback=ConfigDefaults.skip_ratio_required)
         self.save_videos = config.getboolean('MusicBot', 'SaveVideos', fallback=ConfigDefaults.save_videos)
@@ -108,15 +81,64 @@ class Config:
         self.debug_mode = config.getboolean('MusicBot', 'DebugMode', fallback=ConfigDefaults.debug_mode)
 
         self.blacklist_file = config.get('Files', 'BlacklistFile', fallback=ConfigDefaults.blacklist_file)
-        self.whitelist_file = config.get('Files', 'WhitelistFile', fallback=ConfigDefaults.whitelist_file)
         self.auto_playlist_file = config.get('Files', 'AutoPlaylistFile', fallback=ConfigDefaults.auto_playlist_file)
 
-        # Validation logic for bot settings.
-        if not self.token:
-            raise HelpfulError('A token was not specified in the configuration file.', preface=confpreface)
+        self.run_checks()
 
-        if not self.owner_id:
-            raise HelpfulError("An owner is not specified in the configuration file", preface=confpreface)
+
+    def run_checks(self):
+        """
+        Validation logic for bot settings.
+        """
+        confpreface = "An error has occured reading the config:\n"
+
+        if self._email or self._password:
+            if not self._email:
+                raise HelpfulError(
+                    "The login email was not specified in the config.",
+
+                    "Please put your bot account credentials in the config.  "
+                    "Remember that the Email is the email address used to register the bot account.",
+                    preface=confpreface)
+
+            if not self._password:
+                raise HelpfulError(
+                    "The password was not specified in the config.",
+
+                    "Please put your bot account credentials in the config.",
+                    preface=confpreface)
+
+            self.auth = (self._email, self._password)
+
+        elif not self._login_token:
+            raise HelpfulError(
+                "No login credentials were specified in the config.",
+
+                "Please fill in either the Email and Password fields, or "
+                "the Token field.  The Token field is for Bot accounts only.",
+                preface=confpreface
+            )
+
+        else:
+            self.auth = (self._login_token,)
+
+        if self.owner_id and self.owner_id.isdigit():
+            if int(self.owner_id) < 10000:
+                raise HelpfulError(
+                    "OwnerID was not set.",
+
+                    "Please set the OwnerID in the config.  If you "
+                    "don't know what that is, use the %sid command" % self.command_prefix,
+                    preface=confpreface)
+
+        else:
+            raise HelpfulError(
+                "An invalid OwnerID was set.",
+
+                "Correct your OwnerID.  The ID should be just a number, approximately "
+                "18 characters long.  If you don't know what your ID is, "
+                "use the %sid command.  Current invalid OwnerID: %s" % (self.command_prefix, self.owner_id),
+                preface=confpreface)
 
         if self.bound_channels:
             try:
@@ -134,12 +156,43 @@ class Config:
 
         self.delete_invoking = self.delete_invoking and self.delete_messages
 
+        self.bound_channels = set(item.replace(',', ' ').strip() for item in self.bound_channels)
+
+        self.autojoin_channels = set(item.replace(',', ' ').strip() for item in self.autojoin_channels)
+
     # TODO: Add save function for future editing of options with commands
     #       Maybe add warnings about fields missing from the config file
 
     def write_default_config(self, location):
         pass
 
+
+class ConfigDefaults:
+    email = None    #
+    password = None # This is not where you put your login info, go away.
+    token = None    #
+    name = 'MusicBot'
+
+    owner_id = None
+    command_prefix = '!'
+    bound_channels = set()
+    autojoin_channels = set()
+
+    default_volume = 0.15
+    skips_required = 4
+    skip_ratio_required = 0.5
+    save_videos = True
+    now_playing_mentions = False
+    auto_summon = True
+    auto_playlist = True
+    auto_pause = True
+    delete_messages = True
+    delete_invoking = False
+    debug_mode = False
+
+    options_file = 'config/options.ini'
+    blacklist_file = 'config/blacklist.txt'
+    auto_playlist_file = 'config/autoplaylist.txt' # this will change when I add playlists
 
 # These two are going to be wrappers for the id lists, with add/remove/load/save functions
 # and id/object conversion so types aren't an issue

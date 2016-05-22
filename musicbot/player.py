@@ -16,18 +16,19 @@ class PatchedBuff:
         PatchedBuff monkey patches a readable object, allowing you to vary what the volume is as the song is playing.
     """
 
-    def __init__(self, buff):
+    def __init__(self, buff, *, draw=False):
         self.buff = buff
         self.frame_count = 0
         self.volume = 1.0
 
-        self.draw = False
+        self.draw = draw
         self.use_audioop = True
         self.frame_skip = 2
         self.rmss = deque([2048], maxlen=90)
 
     def __del__(self):
-        print(' ' * (get_terminal_size().columns-1), end='\r')
+        if self.draw:
+            print(' ' * (get_terminal_size().columns-1), end='\r')
 
     def read(self, frame_size):
         self.frame_count += 1
@@ -77,7 +78,9 @@ class PatchedBuff:
 class MusicPlayerState(Enum):
     STOPPED = 0  # When the player isn't playing anything
     PLAYING = 1  # The player is actively playing music.
-    PAUSED = 2  # The player is paused on a song.
+    PAUSED = 2   # The player is paused on a song.
+    WAITING = 3  # The player has finished its song but is still downloading the next one
+    DEAD = 4     # The player has been killed.
 
     def __str__(self):
         return self.name
@@ -97,6 +100,8 @@ class MusicPlayer(EventEmitter):
         self._current_player = None
         self._current_entry = None
         self.state = MusicPlayerState.STOPPED
+
+        self.loop.create_task(self.websocket_check())
 
     @property
     def volume(self):
@@ -128,6 +133,11 @@ class MusicPlayer(EventEmitter):
             self.emit('resume', player=self, entry=self.current_entry)
             return
 
+        if self.is_paused and not self._current_player:
+            self.state = MusicPlayerState.PLAYING
+            self._kill_current_player()
+            return
+
         raise ValueError('Cannot resume playback from state %s' % self.state)
 
     def pause(self):
@@ -146,23 +156,21 @@ class MusicPlayer(EventEmitter):
         raise ValueError('Cannot pause a MusicPlayer in state %s' % self.state)
 
     def kill(self):
-        self.stop()
+        self.state = MusicPlayerState.DEAD
         self.playlist.clear()
+        self._events.clear()
+        self._kill_current_player()
 
     def _playback_finished(self):
         entry = self._current_entry
 
         if self._current_player:
             self._current_player.after = None
-            try:
-                self._current_player.stop()
-            except OSError:
-                pass
+            self._kill_current_player()
 
         self._current_entry = None
-        self._current_player = None
 
-        if not self.is_stopped:
+        if not self.is_stopped and not self.is_dead:
             self.play(_continue=True)
 
         if not self.bot.config.save_videos and entry:
@@ -217,6 +225,9 @@ class MusicPlayer(EventEmitter):
         if self.is_paused:
             return self.resume()
 
+        if self.is_dead:
+            return
+
         with await self._play_lock:
             if self.is_stopped or _continue:
                 try:
@@ -258,6 +269,29 @@ class MusicPlayer(EventEmitter):
         player.buff = PatchedBuff(original_buff)
         return player
 
+    def reload_voice(self, voice_client):
+        self.voice_client = voice_client
+        if self._current_player:
+            self._current_player.player = voice_client.play_audio
+            self._current_player._resumed.clear()
+            self._current_player._connected.set()
+
+    async def websocket_check(self):
+        if self.bot.config.debug_mode:
+            print("[Debug] Creating websocket check loop")
+
+        while not self.is_dead:
+            try:
+                self.voice_client.ws.ensure_open()
+                assert self.voice_client.ws.open
+            except:
+                if self.bot.config.debug_mode:
+                    print("[Debug] Voice websocket is %s, reconnecting" % self.voice_client.ws.state_name)
+                await self.bot.reconnect_voice_client(self.voice_client.channel.server)
+                await asyncio.sleep(4)
+            finally:
+                await asyncio.sleep(1)
+
     @property
     def current_entry(self):
         return self._current_entry
@@ -275,12 +309,17 @@ class MusicPlayer(EventEmitter):
         return self.state == MusicPlayerState.STOPPED
 
     @property
+    def is_dead(self):
+        return self.state == MusicPlayerState.DEAD
+
+    @property
     def progress(self):
         return round(self._current_player.buff.frame_count * 0.02)
         # TODO: Properly implement this
         #       Correct calculation should be bytes_read/192k
         #       192k AKA sampleRate * (bitDepth / 8) * channelCount
         #       Change frame_count to bytes_read in the PatchedBuff
+
 
 # if redistributing ffmpeg is an issue, it can be downloaded from here:
 #  - http://ffmpeg.zeranoe.com/builds/win32/static/ffmpeg-latest-win32-static.7z
@@ -296,6 +335,7 @@ class MusicPlayer(EventEmitter):
 # Get duration with ffprobe
 #   ffprobe.exe -v error -show_entries format=duration -of default=noprint_wrappers=1:nokey=1 -sexagesimal filename.mp3
 # This is also how I fix the format checking issue for now
+# ffprobe -v quiet -print_format json -show_format stream
 
 # Normalization filter
 # -af dynaudnorm
