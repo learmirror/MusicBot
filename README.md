@@ -1,4 +1,4 @@
-# MusicBot
+# RhinoBot: The music bot for Discord.
 
 MusicBot is a Discord music bot written in [Python](https://www.python.org "Python homepage"). It plays requested songs and if the queue becomes empty it will play through a list of existing songs.
 
@@ -30,9 +30,9 @@ Some frequently asked questions are listed on the wiki [here](https://github.com
 
 # Our changes
 
-> Bot use Discord OAuth2
+> Bot use also Discord OAuth2
 
-> To login you need only **token** (create it here: [Discord Applications](https://discordapp.com/developers/applications/me "Discord Applications"))
+> To login with **token** you need only it (create it here: [Discord Applications](https://discordapp.com/developers/applications/me "Discord Applications"))
 
 > New commands: h (help), p / music / m / add (play), d (skip), s (search), remove / rem, undo, q (queue), v (volume), setavatar, setname, unskip.
 
