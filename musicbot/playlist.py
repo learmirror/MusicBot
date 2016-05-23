@@ -88,6 +88,19 @@ class Playlist(EventEmitter):
         self._add_entry(entry)
         return entry, len(self.entries)
 
+    async def remove_entry_group(self, channel, userid):
+        """
+            Removes the songs of the given ID from the queue.
+            
+            Return true if playlist cleared or false if it does not have entries from this user.
+        """
+        newqueue = [item for item in list(self.entries) if not item.checkid(userid)]
+        if len(newqueue) != len(self.entries):
+            self.entries = deque(newqueue)
+            return True
+        else:
+            return False
+
     async def import_from(self, playlist_url, **meta):
         """
             Imports the songs from `playlist_url` and queues them to be played.
@@ -284,6 +297,12 @@ class PlaylistEntry:
         self._is_downloading = False
         self._waiting_futures = []
         self.download_folder = self.playlist.downloader.download_folder
+
+    def checkid(self, checkid):
+        """
+        Checks whether the given ID equals the ID of the Item of the Playlist
+        """
+        return bool(checkid == self.meta['author'].id)
 
     @property
     def is_downloaded(self):

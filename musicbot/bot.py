@@ -357,7 +357,7 @@ class MusicBot(discord.Client):
         if server.id not in self.players:
             if not create:
                 raise exceptions.CommandError(
-                    'The bot is not in a voice channel.  '
+                    '!The bot is not in a voice channel.  '
                     'Use %ssummon to summon it to your voice channel.' % self.config.command_prefix)
 
             voice_client = await self.get_voice_client(channel)
@@ -631,9 +631,10 @@ class MusicBot(discord.Client):
             chlist = set(self.get_channel(i) for i in self.config.bound_channels if i)
             invalids = set()
 
-            #invalids.update(c for c in chlist if c.type != discord.ChannelType.text)
-            #chlist.difference_update(invalids)
-            #self.config.bound_channels.difference_update(invalids)
+            # If you setup wrong id in options.ini, you will be stucked here.
+            invalids.update(c for c in chlist if c.type != discord.ChannelType.text)
+            chlist.difference_update(invalids)
+            self.config.bound_channels.difference_update(invalids)
 
             print("Bound to text channels:")
             [self.safe_print(' - %s/%s' % (ch.server.name.strip(), ch.name.strip())) for ch in chlist if ch]
@@ -651,6 +652,7 @@ class MusicBot(discord.Client):
             chlist = set(self.get_channel(i) for i in self.config.autojoin_channels if i)
             invalids = set()
 
+            # If you setup wrong id in options.ini, you will be stucked here.
             invalids.update(c for c in chlist if c.type != discord.ChannelType.voice)
             chlist.difference_update(invalids)
             self.config.autojoin_channels.difference_update(invalids)
@@ -1450,16 +1452,34 @@ class MusicBot(discord.Client):
         await self.safe_delete_message(hand, quiet=True)
         return Response(":ok_hand:", delete_after=15)
 
-    async def cmd_clear(self, player, author):
+    async def cmd_clear(self, channel, player, author, user_mentions=None):
         """
         Usage:
-            {command_prefix}clear
+            {command_prefix}clear [@user]
 
-        Clears the playlist.
+        Clears the playlist or removes the mentioned users songs from the song queue.
         """
 
-        player.playlist.clear()
-        return Response(':put_litter_in_its_place:', delete_after=20)
+        if not user_mentions:
+            player.playlist.clear()
+            return Response(':put_litter_in_its_place:', delete_after=20)
+        user = user_mentions[0]
+        result = await player.playlist.remove_entry_group(channel, user.id)
+        if result:
+            return Response("Done, ***%s****'s* songs were removed." % (user.name), delete_after=30)
+        else:
+            return Response("Nothing queued from ***%s***, or error while running!" % (user.name), delete_after=30)
+
+    async def cmd_c(self, channel, player, author, user_mentions=None):
+        """
+        Usage:
+            {command_prefix}c @User
+
+        Clears the playlist or removes the mentioned users songs from the song queue.
+        """
+        
+        return await self.cmd_clear(channel, player, author, user_mentions)
+        
 
     async def cmd_skip(self, player, channel, author, message, permissions, voice_channel):
         """
@@ -1996,6 +2016,42 @@ class MusicBot(discord.Client):
         """
         self.unskip_state = unskip_state
 
+    async def cmd_next(self, channel, player):
+        """
+        Usage:
+            {command_prefix}next
+        Prints the next song in the queue.
+        """
+
+        message = ''
+
+        if player.current_entry:
+            to_next_song = player.current_entry.duration - player.progress
+
+            if to_next_song > 3600:
+                to_next_song = str(timedelta(seconds=to_next_song)).lstrip('0').lstrip(':').__add__(' second*(s)*')
+                to_next_song = to_next_song.replace(':', ' hour*(s)* ', 1).replace(':', ' minutes ', 1)
+            elif 600 <= to_next_song < 3600:
+                to_next_song = str(timedelta(seconds=to_next_song)).lstrip('0').lstrip(':').__add__(' second*(s)*')
+                to_next_song = to_next_song.replace(':', ' minute*(s)* ')
+            elif 60 <= to_next_song <= 600:
+                to_next_song = str(timedelta(seconds=to_next_song)).lstrip('0').lstrip(':').lstrip('0').__add__(' second*(s)*')
+                to_next_song = to_next_song.replace(':', ' minutes ')
+            elif to_next_song < 60:
+                to_next_song = str(timedelta(seconds=to_next_song)).lstrip('0').lstrip(':').lstrip('0').lstrip('0').lstrip(':').__add__(' second*(s)*')
+
+        if player.playlist.peek():       
+            item = player.playlist.peek()
+            if item.meta.get('channel', False) and item.meta.get('author', False):
+                message = 'Next after {}: **{}** added by **{}**'.format(to_next_song, item.title, item.meta['author'].name).strip()
+            else:
+                message = 'Next after {}: **{}**'.format(to_next_song, item.title).strip()
+
+        if not message:
+            message = 'There are no songs queued! Queue something with {}play.'.format(self.config.command_prefix)
+
+        return Response(message, delete_after=60)
+
     async def cmd_disconnect(self, server):
         await self.disconnect_voice_client(server)
         return Response(":hear_no_evil:", delete_after=20)
@@ -2146,7 +2202,7 @@ class MusicBot(discord.Client):
 
             await self.safe_send_message(
                 message.channel,
-                '```\n%s\n```' % e.message,
+                '```diff\n%s\n```' % e.message,
                 expire_in=expirein,
                 also_delete=alsodelete
             )
