@@ -88,6 +88,14 @@ class Playlist(EventEmitter):
         self._add_entry(entry)
         return entry, len(self.entries)
 
+    async def to_next_entry(self):
+        """
+            Move newly added element to second position#, song_url, **meta):
+        """
+        #await self.add_entry(self, song_url, **meta)
+        self.entries.insert(0, self.entries.pop())
+        return True
+
     async def remove_entry_group(self, channel, userid):
         """
             Removes the songs of the given ID from the queue.

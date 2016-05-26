@@ -8,6 +8,7 @@ import aiohttp
 import discord
 import asyncio
 import traceback
+import re
 
 from discord import utils
 from discord.object import Object
@@ -21,7 +22,7 @@ from datetime import timedelta
 from random import choice, shuffle
 from collections import defaultdict
 
-from musicbot.playlist import Playlist
+from musicbot.playlist import Playlist #, PlaylistEntryfrom musicbot.playlist import Playlist
 from musicbot.player import MusicPlayer
 from musicbot.config import Config, ConfigDefaults
 from musicbot.permissions import Permissions, PermissionsDefaults
@@ -380,7 +381,11 @@ class MusicBot(discord.Client):
         await self.update_now_playing(entry)
         player.skip_state.reset()
         if entry.url not in self.autoplaylist:
-            self.autoplaylist.append(entry.url.replace("http://", "https://"))
+            idcheck = re.match(r"(https:\/\/|http:\/\/)", entry.url)
+            if idcheck == None:
+                entry.url = "https://www.youtube.com/watch?v=" + entry.url
+            entry.url = re.sub(r"(((\?|\&)(annotation_id|autohide|autoplay|cc_load_policy|color|controls|disablekb|enablejsapi|end|feature|fs|hl|index|iv_load_policy|list|listType|loop|modestbranding|origin|playerapiid|playsinline|rel|showinfo|src_vid|start|theme|version)(=|))[a-zA-Z0-9\._\-]{0,}|(#t=)[a-zA-Z0-9]{0,})", "", entry.url)
+            self.autoplaylist.append(entry.url.replace("http://", "https://").replace("youtu.be/", "www.youtube.com/watch?v=").replace("embed/", "watch?v=").replace("v/", "watch?v=").replace("apiplayer", "watch").replace("&v=", "?v="))
             write_file(self.config.auto_playlist_file, self.autoplaylist)
 
         channel = entry.meta.get('channel', None)
@@ -1087,6 +1092,20 @@ class MusicBot(discord.Client):
 
         return await self.cmd_play(player, channel, author, permissions, leftover_args, song_url)
 
+    async def cmd_nq(self, player, channel, author, permissions, leftover_args, song_url):
+        """
+        Usage:
+            {command_prefix}nq song_link
+            {command_prefix}nq text to search for
+
+        Adds the song to the playlist.  If a link is not provided, the first
+        result from a youtube search is added to the queue.
+        """
+
+        await self.cmd_play(player, channel, author, permissions, leftover_args, song_url)
+        await player.playlist.to_next_entry()
+        return Response('Requested song will be played next.', delete_after=30)
+
     async def _cmd_play_playlist_async(self, player, channel, author, permissions, playlist_url, extractor_type):
         """
         Secret handler to use the async wizardry to make playlist queuing non-"blocking"
@@ -1345,7 +1364,11 @@ class MusicBot(discord.Client):
             song_progress = str(timedelta(seconds=player.progress)).lstrip('0').lstrip(':')
             song_total = str(timedelta(seconds=player.current_entry.duration)).lstrip('0').lstrip(':')
             prog_str = '`[%s/%s]`' % (song_progress, song_total)
-            song_url = str(player.current_entry.url)
+            player = await self.get_player(channel)
+            if player.current_entry.song_url:
+                song_url = player.current_entry.song_url
+            else:
+                song_url = '?' # player.current_entry.song_url #str(player.playlist.entries[0].url)
 
             if player.current_entry.meta.get('channel', False) and player.current_entry.meta.get('author', False):
                 np_text = "Now Playing: **%s** added by **%s** %s\n" % (
@@ -1723,7 +1746,7 @@ class MusicBot(discord.Client):
         Remove this URL into auto playlist.
         """
 
-        return await self.cmd_remove(channel, player)
+        return await self.cmd_remove(author, player, channel)
 
     async def handle_undo(self, author, player, channel):
         """
@@ -1745,7 +1768,9 @@ class MusicBot(discord.Client):
 
     async def handle_u(self, author, player, channel):
         """
-        Usage {command_prefix}u
+        Usage:
+            {command_prefix}u
+
         Undo removed URL.
         """
 
@@ -2005,6 +2030,7 @@ class MusicBot(discord.Client):
         """
         Usage:
             {command_prefix}unskip
+
         Prevent skipping this audio track until it end.
         """
         await self.unskip(unskip_state=True)
@@ -2020,6 +2046,7 @@ class MusicBot(discord.Client):
         """
         Usage:
             {command_prefix}next
+
         Prints the next song in the queue.
         """
 
@@ -2051,6 +2078,23 @@ class MusicBot(discord.Client):
             message = 'There are no songs queued! Queue something with {}play.'.format(self.config.command_prefix)
 
         return Response(message, delete_after=60)
+
+    async def cmd_fixlinkinautoplaylist(self, channel, author):
+        """
+        Usage:
+            {command_prefix}fixlinkinautoplaylist
+
+        Delete &lists=... time and other garbadge...
+        """
+        for i, line in enumerate(self.autoplaylist):
+            idcheck = re.match(r"(https:\/\/|http:\/\/)", line)
+            if idcheck == None:
+                line = "https://www.youtube.com/watch?v=" + line
+            line = re.sub(r"(((\?|\&)(annotation_id|autohide|autoplay|cc_load_policy|color|controls|disablekb|enablejsapi|end|feature|fs|hl|index|iv_load_policy|list|listType|loop|modestbranding|origin|playerapiid|playsinline|rel|showinfo|src_vid|start|theme|version)(=|))[a-zA-Z0-9\._\-]{0,}|(#t=)[a-zA-Z0-9]{0,})", "", line)
+            self.autoplaylist[i] = line.replace("http://", "https://").replace("youtu.be/", "www.youtube.com/watch?v=").replace("embed/", "watch?v=").replace("v/", "watch?v=").replace("apiplayer", "watch").replace("&v=", "?v=")
+            #self.autoplaylist.append(line.replace("http://", "https://").replace("youtu.be/", "www.youtube.com/watch?v=").replace("embed/", "watch?v=").replace("v/", "watch?v=").replace("apiplayer", "watch").replace("&v=", "?v="))
+            write_file(self.config.auto_playlist_file, self.autoplaylist)
+        return Response("Done.", delete_after=20)
 
     async def cmd_disconnect(self, server):
         await self.disconnect_voice_client(server)
