@@ -34,6 +34,6 @@ Some frequently asked questions are listed on the wiki [here](https://github.com
 
 > To login with **token** you need only it (create it here: [Discord Applications](https://discordapp.com/developers/applications/me "Discord Applications"))
 
-> New commands: h (help), p / music / m / add (play), d (skip), s (search), remove / rem, undo, q (queue), v (volume), setavatar, setname, unskip, next, clear @mention.
+> New commands: h (help), p / music / m / add (play), d (skip), s (search), remove / rem, undo, q (queue), v (volume), setavatar, setname, unskip, next, clear @mention (c), nq.
 
-> New functional: bot can play at multiple servers (no need multiple accounts or program instances), every song now will adding in autoplaylist, if you no need this, you may remove it or undo (after remove), np show url, unskipping system.
+> New functional: bot can play at multiple servers (no need multiple accounts or program instances), every song now will adding in autoplaylist, if you no need this, you may remove it or undo (after remove), np show url, unskipping system, bot have one format for youtube links and also may fix autoplaylist by using command fixlinkinautoplaylist, can add song at the next place in playlist (not at the end) by using command nq <request>.
