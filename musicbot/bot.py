@@ -1365,8 +1365,8 @@ class MusicBot(discord.Client):
             song_total = str(timedelta(seconds=player.current_entry.duration)).lstrip('0').lstrip(':')
             prog_str = '`[%s/%s]`' % (song_progress, song_total)
             player = await self.get_player(channel)
-            if player.current_entry.song_url:
-                song_url = player.current_entry.song_url
+            if player.current_entry.url: # song_url does not exist
+                song_url = player.current_entry.url
             else:
                 song_url = '?' # player.current_entry.song_url #str(player.playlist.entries[0].url)
 
@@ -1992,7 +1992,7 @@ class MusicBot(discord.Client):
 
         nick = ' '.join([nick, *leftover_args])
 
-        if not nick == 'Default' or nick == 'None':
+        if nick == 'Default' or nick == 'None': #cancels itself out otherwise
             nick = None
         try:
             await self.change_nickname(server.me, nick)
