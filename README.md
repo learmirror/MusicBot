@@ -1,4 +1,4 @@
-# RhinoBot: The music bot for Discord *(edited)*.
+# RhinoBot: The music bot for Discord.
 
 MusicBot is a Discord music bot written in [Python](https://www.python.org "Python homepage"). It plays requested songs and if the queue becomes empty it will play through a list of existing songs.
 
@@ -7,7 +7,7 @@ MusicBot is a Discord music bot written in [Python](https://www.python.org "Pyth
 - [Windows Tutorial](https://github.com/SexualRhinoceros/MusicBot/wiki/Installation-guide-for-Windows-7-and-up "Windows instructions")
 - [Linux Tutorial](https://github.com/SexualRhinoceros/MusicBot/wiki/Installation-guide-for-Ubuntu-14.04-and-other-versions "Linux instructions")
 - [Docker Tutorial](https://github.com/SexualRhinoceros/MusicBot/wiki/Installation-guide-for-Docker)
-- OSX Tutorial - coming soon, whenever someone decides to make one.
+- [OSX Tutorial](https://github.com/SexualRhinoceros/MusicBot/wiki/Installation-guide-for-OSX)
 
 ### Commands
 
@@ -32,8 +32,8 @@ Some frequently asked questions are listed on the wiki [here](https://github.com
 
 > Bot use also Discord OAuth2
 
-> To login with **token** you need only it (create it here: [Discord Applications](https://discordapp.com/developers/applications/me "Discord Applications"))
+> To login with **token** you need only token, bot also will have additional stability if login through token (create it here: [Discord Applications](https://discordapp.com/developers/applications/me "Discord Applications"))
 
-> New commands: h (help), p / music / m / add (play), d (skip), s (search), remove / rem, undo, q (queue), v (volume), setavatar, setname, unskip, next, clear @mention (c), nq.
+> New commands: h (help), p / music / m / add (play), nq (play, but add on second position), d (skip), s (search), remove / rem, undo, q (queue), nq (queue, but only current song), next (queue, but only next), c (clear), v (volume), setavatar, setnick, setname, unskip, fixlinkinautoplaylist.
 
-> New functional: bot can play at multiple servers (no need multiple accounts or program instances), every song now will adding in autoplaylist, if you no need this, you may remove it or undo (after remove), np show url, unskipping system, bot have one format for youtube links and also may fix autoplaylist by using command fixlinkinautoplaylist, can add song at the next place in playlist (not at the end) by using command nq <request>.
+> New functional: bot can play at multiple servers (no need multiple accounts or program instances), every song now will adding in autoplaylist and will playing if queue is empty, if you no need this, you may remove it or undo (undo remove command), np show url to song, unskipping system; clearing now can clear only specifyed user messages, instead all; songs always keep in chat, so you no lose it; you will able to change bot name, nick avatar and also grant it to some people if you want, fixlinkinautoplaylist command stylize playlist inlo one style, clear tags like &t=, etc.
