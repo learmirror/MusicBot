@@ -478,7 +478,7 @@ class MusicBot(discord.Client):
             name = u'{}{}'.format(prefix, entry.title)[:128]
             game = discord.Game(name=name)
 
-        await self.change_status(game)
+        await self.change_presence(game=game)
 
 
     async def safe_send_message(self, dest, content, *, tts=False, expire_in=0, also_delete=None, quiet=False):
@@ -770,7 +770,8 @@ class MusicBot(discord.Client):
 
             helpmsg += ", ".join(commands)
             helpmsg += "```"
-            helpmsg += "https://github.com/SexualRhinoceros/MusicBot/wiki/Commands-list + https://github.com/JumpJets/MusicBot"
+            helpmsg += "Use `{}help <command>` to read command description.\n".format(self.config.command_prefix)
+            helpmsg += "https://github.com/Just-Some-Bots/MusicBot + https://github.com/JumpJets/MusicBot"
 
             return Response(helpmsg, reply=True, delete_after=60)
 
@@ -1114,7 +1115,7 @@ class MusicBot(discord.Client):
             {command_prefix}nq song_link
             {command_prefix}nq text to search for
 
-        Adds the song to the playlist.  If a link is not provided, the first
+        Adds the song to the playlist at second position, instead of end.  If a link is not provided, the first
         result from a youtube search is added to the queue.
         """
 
@@ -1752,7 +1753,6 @@ class MusicBot(discord.Client):
             write_file(self.config.auto_playlist_file, self.autoplaylist)
         else:
             raise exceptions.PermissionsError("%s not in playlist. Can\'t remove it." % player.current_entry.title, expire_in=20)
-            #raise CommandInfo('%s not in playlist. Can\'t remove it.' % player.current_entry.title)
 
         return Response("Song **%s** **__removed__** from rotation. Use command `undo` to back this track." % player.current_entry.title, delete_after=25)
 
@@ -1781,7 +1781,6 @@ class MusicBot(discord.Client):
             write_file(self.config.auto_playlist_file, self.autoplaylist)
         else:
             raise exceptions.PermissionsError("No need to undo. **%s** Already have in playlist." % player.current_entry.title, expire_in=20)
-            #return await self.safe_send_message(channel, "No need to undo. **%s** Already have in playlist." % player.current_entry.title)
 
         return Response("**Undo successful.** Song **%s** is back from rotation." % player.current_entry.title, delete_after=15)
 
@@ -2115,126 +2114,6 @@ class MusicBot(discord.Client):
             write_file(self.config.auto_playlist_file, self.autoplaylist)
         return Response("Done.", delete_after=20)
 
-    async def cmd_ttab(self, leftover_args, name=None):
-        """
-        Usage {command_prefix}ttab [Name?]
-        Return table with spaces, use `;` as separator
-        """
-        name = ' '.join([name, *leftover_args])
-        if not name:
-            return Response('Add some nick names, separated by `;`', delete_after=15)
-        ###storage https://discordapp.com/assets/72635fda0f6d2188e224.js
-        ##local file (2 lines):
-        #with open('repchars.json', 'r', encoding="utf8") as rep_file:
-        #    rep = json.load(rep_file)
-
-        ##web file (37 lines):
-        hdr = {'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.11 (KHTML, like Gecko) Chrome/23.0.1271.64 Safari/537.11',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-            'Accept-Charset': 'ISO-8859-1,utf-8;q=0.7,*;q=0.3',
-            'Accept-Encoding': 'none',
-            'Accept-Language': 'en-US,en;q=0.8',
-            'Connection': 'keep-alive'}
-        req = urllib.request.Request("https://discordapp.com/assets/72635fda0f6d2188e224.js", headers=hdr)
-        f = urllib.request.urlopen(req)
-        rep = f.read().decode('utf-8')
-        s = rep.split('\n')
-        rep = '{}{}'.format(s[51], s[52])
-        del s
-        repi = rep.find(u"function(e,t){e.exports={")
-        if repi == -1:
-            return Response("Can\'t find pattern start in file.", delete_after=15)
-        rep = rep[repi+24:] #24 is length of find string to "{"
-        
-        repi = rep.find(u"}},function(e,t){e.exports=[{")
-        if repi == -1:
-            return Response("Can\'t find pattern exit in file.", delete_after=15)
-        rep = rep[:repi+1] # 1 to } in }}
-
-        rep = re.sub(r"\w+\:\[", u"", rep)                  #1 del word:[
-        rep = re.sub(r"[\[\]]", u"", rep)                   #2 del []
-        rep = re.sub(r"\},\{", u",", rep)                   #3 rep },{ to ,
-        rep = re.sub(r",surrogates", u"", rep)              #4 del ,surrogates
-        rep = re.sub(r"\{+", u"{", rep)                     #5 rep {{ to {
-        rep = re.sub(r"\}+", u"}", rep)                     #6 rep }} to }
-        rep = re.sub(r"hasDiversity:!0,", u"", rep)         #7 del hasDiversity:!0,
-        rep = re.sub(r"\"[^ℹ]\w+\",", u"", rep)             #8 del multiple smile condition
-        rep = re.sub(r"(\")(\w{3,})(\")", r"\1:\2:\3", rep) #9 rep "smile" to ":smile:"
-
-        rep = json.loads(rep)
-        ret = {}
-        for k in rep:
-            ret[rep[k]] = k
-        rep = ret
-        del ret
-
-        rep = dict((re.escape(k), v) for k, v in rep.items())
-        pattern = re.compile("|".join(rep.keys()))
-        name = pattern.sub(lambda m: rep[re.escape(m.group(0))], name)
-
-        names = name.split(";")
-        lvl = []
-        expall = []
-        exp1 = []
-        exp2 = []
-        lines = []
-        for i, elem in enumerate(names):
-            lvl.append(i + 1)
-            # start random code that generate random numbers
-            te = random.randint((len(names) - i + 1) * 700, (len(names) - i + 1) * 1000)
-            expall.append(te)
-            exp2.append(int(round(te / (len(names) - i + 1))))
-            exp1.append(abs(te - exp2[i]))
-            # end
-
-        lenname = [0] * len(names)
-        brokenchars = [0] * len(names)
-        ml = 0
-        pattern = re.compile(u"[\uff21-\uff5a\uff10-\uff19\U0001d400-\U0001d433\U0001d7ce-\U0001d7d7\U0001d468-\U0001d49b\U0001d434-\U0001d467\U0001d49c\U0001d49e\U0001d49f\U0001d4a2\U0001d4a5\U0001d4a6\U0001d4a9-\U0001d4ac\U0001d4ae\U0001d4af\U0001d4b0-\U0001d4bf\U0001d4c0-\U0001d4df\U0001d4e0-\U0001d4ef\U0001d4f0-\U0001d503\u212c\u2130\u2131\u210b\u2110\u2112\u2133\u2118\u211b\u212f\u210a\u2134\U0001d504\U0001d505\u212d\U0001d507-\U0001d50a\u210c\u2111\U0001d50d-\U0001d514\u211c\U0001d516-\U0001d51c\u2128\U0001d51e-\U0001d537\U0001d56c-\U0001d59f\U0001d538\U0001d539\u2102\U0001d53b-\U0001d53e\u210d\U0001d540-\U0001d544\u2115\U0001d546\u2119\u211a\u211d\U0001d54a-\U0001d550\u2124\U0001d552-\U0001d56b\U0001d7d8-\U0001d7e1]")
-        for i in range(0, len(names)):
-            lenname[i] = [m.end(0) - m.start(0) for m in re.finditer(u'[\u0300-\u036f]+', names[i])]
-            print("=%s" % lenname) # debug
-            if lenname[i] == []:
-                if len(names[i]) > ml:
-                    ml = len(names[i])
-                lenname[i] = 0
-            else:
-                if len(names[i])-sum(lenname[i]) > ml:
-                    ml = len(names[i])-sum(lenname[i])
-                lenname[i] = len(names[i]) - sum(lenname[i])
-            print("+%s" % (lenname)) # debug
-
-            brokenchars[i] = len(re.findall(pattern, names[i]))
-            if brokenchars[i] >= 4:
-                #if lenname[i]>=3
-                names[i]=names[i]+u'\u3000'
-                brokenchars[i] -= 3
-        for i, elem in enumerate(names):
-            if lenname[i] == 0: 
-                lenname[i] = ml
-            else:
-                if len(names[i]) < ml:
-                    lenname[i] = ml - len(names[i]) + lenname[i]
-            #nextline = "{:>{ll}d}│{:<{ln}s}{:>{ln2}s} │ Level: {:>{ll}d} │ EXP: {:>{lea}d} / {:<{leb}d} │ Total EXP: {:>{lte}d} > {ln}+{ln2}, {t}".format(lvl[i], names[i], '', lvl[i], exp1[i], exp2[i], expall[i], ln=ml-(brokenchars[i]*3), ln2=ml-lenname[i], ll=len(str(max(lvl))), lea=len(str(max(exp1))), leb=len(str(max(exp2))), lte=len(str(max(expall))), t=lenname[i])
-            nextline = "{:>{ll}d}│{:<{ln}s}{:>{ln2}s} │ Level: {:>{ll}d} │ EXP: {:>{lea}d} / {:<{leb}d} │ Total EXP: {:>{lte}d} > {ln}+{ln2}, {t}".format(lvl[i], names[i], '', lvl[i], exp1[i], exp2[i], expall[i], ln=ml, ln2=ml-lenname[i], ll=len(str(max(lvl))), lea=len(str(max(exp1))), leb=len(str(max(exp2))), lte=len(str(max(expall))), t=lenname[i])
-            lines.append(nextline)
-        return Response("```xl\n{}```".format('\n'.join(lines)), delete_after=0)
-
-    async def cmd_raw(self, message, leftover_args, chars=None):
-        """
-        Usage:
-        """
-        chars = ' '.join([chars, *leftover_args])
-        if not chars:
-            if message.attachments:
-                texturl = message.attachments[0]['url']
-                with aiohttp.Timeout(10):
-                    async with self.aiosession.get(texturl) as res:
-                        bytetext = await res.read()
-                        print(bytetext.decode("raw_unicode_escape")) #print(text.encode("unicode_escape"))
-                        return Response("See in console", delete_after=0)
-        return Response(chars.encode("raw_unicode_escape"), delete_after=0)
-
     async def cmd_disconnect(self, server):
         await self.disconnect_voice_client(server)
         return Response(":hear_no_evil:", delete_after=20)
@@ -2374,14 +2253,14 @@ class MusicBot(discord.Client):
                 sentmsg = await self.safe_send_message(
                     message.channel, content,
                     expire_in=response.delete_after if self.config.delete_messages else 0,
-                    also_delete=message if self.config.delete_invoking else None
+                    also_delete=message if self.config.delete_invoking and not message.content.strip().startswith("{}p ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}play ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}add ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}m ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}music ".format(self.config.command_prefix)) else None
                 )
 
         except (exceptions.CommandError, exceptions.HelpfulError, exceptions.ExtractionError) as e:
             print("{0.__class__}: {0.message}".format(e))
 
             expirein = e.expire_in if self.config.delete_messages else None
-            alsodelete = message if self.config.delete_invoking else None
+            alsodelete = message if self.config.delete_invoking and not message.content.strip().startswith("{}p ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}play ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}add ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}m ".format(self.config.command_prefix)) and not message.content.strip().startswith("{}music ".format(self.config.command_prefix)) else None
 
             await self.safe_send_message(
                 message.channel,
