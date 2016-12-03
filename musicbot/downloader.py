@@ -6,9 +6,10 @@ import youtube_dl
 from concurrent.futures import ThreadPoolExecutor
 
 ytdl_format_options = {
-    'format': 'bestaudio/best',
+    'format': 'best',
     'extractaudio': True,
-    'audioformat': 'mp3',
+    'audioformat': 'best',
+    'audioquality': '0',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
     'restrictfilenames': True,
     'noplaylist': True,
