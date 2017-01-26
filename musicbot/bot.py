@@ -2328,6 +2328,31 @@ class MusicBot(discord.Client):
             await self.reconnect_voice_client(after)
 
 
+    async def cmd_ping(self, channel):
+        """
+        Usage:
+            {command_prefix}ping
+        Ping command to test latency
+        """
+        await self.safe_send_message(channel, "Pong!")
+
+    async def cmd_sendall(self, args, leftover_args):
+        """
+        Usage:
+            {command_prefix}sendall <message>
+        Sends a message to all servers the bot is on
+        """
+        if leftover_args:
+            args = ' '.join([args, *leftover_args])
+        for s in self.servers:
+            await self.safe_send_message(s, args)
+	
+    async def cmd_restart(self, author, channel):
+        for s in self.servers:
+            await self.safe_send_message(s, "Restarting (by {0.name}#{0.discriminator})".format(author))
+        await self.disconnect_all_voice_clients()
+        raise exceptions.RestartSignal	
+		
 if __name__ == '__main__':
     bot = MusicBot()
     bot.run()
