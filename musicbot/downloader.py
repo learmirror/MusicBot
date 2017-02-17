@@ -6,7 +6,8 @@ import youtube_dl
 from concurrent.futures import ThreadPoolExecutor
 
 ytdl_format_options = {
-    'preferffmpeg':True,
+    'hlspreferffmpeg': True,
+    'preferffmpeg': True,
     'recodevideo': 'mp4',
     'format': 'best',
     'extractaudio': True,
