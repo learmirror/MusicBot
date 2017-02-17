@@ -6,9 +6,11 @@ import youtube_dl
 from concurrent.futures import ThreadPoolExecutor
 
 ytdl_format_options = {
+    'preferffmpeg':True,
+    'recodevideo': 'mp4',
     'format': 'best',
     'extractaudio': True,
-    'audioformat': 'best',
+    'audioformat': 'opus',
     'audioquality': '0',
     'outtmpl': '%(extractor)s-%(id)s-%(title)s.%(ext)s',
     'restrictfilenames': True,
@@ -30,7 +32,6 @@ youtube_dl.utils.bug_reports_message = lambda: ''
     catch the exceptions with `ignoreerrors` off.  To not break when ytdl hits a dumb video
     (rental videos, etc), I have to have `ignoreerrors` on.  I can change these whenever, but with async
     that's bad.  So I need multiple ytdl objects.
-
 '''
 
 class Downloader:
