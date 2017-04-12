@@ -2384,6 +2384,39 @@ class MusicBot(discord.Client):
             <ORE WA MANKO DAISKI>
             """ 
             await self.safe_send_message(channel, "https://cdn.discordapp.com/attachments/255842326918856715/301723474584666112/suponjabobu.png")
+	
+    async def cmd_patpat(self, channel):
+            """
+            Usage:
+            {command_prefix}patpat
+            <There, there>
+            """ 
+            await self.safe_send_message(channel, "http://i.imgur.com/AeyKREt.gif")
+
+    async def cmd_salt(self, channel):
+            """
+            Usage:
+            {command_prefix}salt
+            <REEEEEEEEEEEEEEEEEE>
+            """ 
+            await self.safe_send_message(channel, "https://puu.sh/ulRQp/46957c2f06.gif")
+	
+    async def cmd_owo(self, channel):
+            """
+            Usage:
+            {command_prefix}owo
+            <:0>
+            """ 
+            await self.safe_send_message(channel, "https://puu.sh/uSwfm/f6e0c0956b.gif")
+
+    async def cmd_disapprove(self, channel):
+            """
+            Usage:
+            {command_prefix}disapprove
+            <NO>
+            """ 
+            await self.safe_send_message(channel, "https://puu.sh/uI9rt.png")
+
 if __name__ == '__main__':
     bot = MusicBot()
     bot.run()
