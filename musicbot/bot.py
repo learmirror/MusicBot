@@ -2385,11 +2385,11 @@ class MusicBot(discord.Client):
             """ 
             await self.safe_send_message(channel, "https://cdn.discordapp.com/attachments/255842326918856715/301723474584666112/suponjabobu.png")
 	
-    async def cmd_patpat(self, channel):
+    async def cmd_keke(self, channel):
             """
             Usage:
-            {command_prefix}patpat
-            <There, there>
+            {command_prefix}keke
+            <kekeke>
             """ 
             await self.safe_send_message(channel, "http://i.imgur.com/AeyKREt.gif")
 
@@ -2416,6 +2416,14 @@ class MusicBot(discord.Client):
             <NO>
             """ 
             await self.safe_send_message(channel, "https://puu.sh/uI9rt.png")
+	
+    async def cmd_patpat(self, channel):
+            """
+            Usage:
+            {command_prefix}patpat
+            <There, there>
+            """ 
+            await self.safe_send_message(channel, "http://31.media.tumblr.com/c0e2442c508ed42f04f465726ea58e47/tumblr_my4fqch4hS1qbvovho1_500.gif")
 
 if __name__ == '__main__':
     bot = MusicBot()
