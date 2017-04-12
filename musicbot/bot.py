@@ -2377,6 +2377,13 @@ class MusicBot(discord.Client):
             """ 
             await self.safe_send_message(channel, "https://cdn.discordapp.com/attachments/255842326918856715/301719953948540928/LGlxG_4e95s.png")
 		
+    async def cmd_paturikku(self, channel):
+            """
+            Usage:
+            {command_prefix}paturikku
+            <ORE WA MANKO DAISKI>
+            """ 
+            await self.safe_send_message(channel, "https://cdn.discordapp.com/attachments/255842326918856715/301723474584666112/suponjabobu.png")
 if __name__ == '__main__':
     bot = MusicBot()
     bot.run()
