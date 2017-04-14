@@ -2433,7 +2433,13 @@ class MusicBot(discord.Client):
             """ 
             await self.safe_send_message(channel, "https://squareportal.files.wordpress.com/2013/06/iqgdezdlyhxry.gif")
 
-	
+    async def cmd_lear(self, channel):
+            """
+            Usage:
+            {command_prefix}lear
+            <you called?>
+            """ 
+            await self.safe_send_message(channel, "http://imgur.com/FIqG310")	
 
 if __name__ == '__main__':
     bot = MusicBot()
