@@ -2440,6 +2440,14 @@ class MusicBot(discord.Client):
             <you called?>
             """ 
             await self.safe_send_message(channel, "http://imgur.com/FIqG310")	
+	
+    async def cmd_hello(self, channel):
+            """
+            Usage:
+            {command_prefix}hello
+            <heyey!>
+            """ 
+            await self.safe_send_message(channel, "https://media.giphy.com/media/JIu5iDNbCeLsI/giphy.gif")	
 
 if __name__ == '__main__':
     bot = MusicBot()
