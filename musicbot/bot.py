@@ -2425,6 +2425,16 @@ class MusicBot(discord.Client):
             """ 
             await self.safe_send_message(channel, "http://31.media.tumblr.com/c0e2442c508ed42f04f465726ea58e47/tumblr_my4fqch4hS1qbvovho1_500.gif")
 
+    async def cmd_dealwithit(self, channel):
+            """
+            Usage:
+            {command_prefix}dealwithit
+            <too bad>
+            """ 
+            await self.safe_send_message(channel, "https://squareportal.files.wordpress.com/2013/06/iqgdezdlyhxry.gif")
+
+	
+
 if __name__ == '__main__':
     bot = MusicBot()
     bot.run()
