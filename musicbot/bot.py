@@ -2367,7 +2367,7 @@ class MusicBot(discord.Client):
             {command_prefix}tidus
             <HAHAHAHA>
             """ 
-            await self.safe_send_message(channel, "{"footer":{"iconurl":"http://37.media.tumblr.com/f3b7827a1a2f8fd42ff1c6010ff49167/tumblr_n3r0a49fGG1sthzylo1_250.gif"},"image":"http://37.media.tumblr.com/f3b7827a1a2f8fd42ff1c6010ff49167/tumblr_n3r0a49fGG1sthzylo1_250.gif","color":7458112}")
+            await self.safe_send_message(channel, {"footer":{"iconurl":"http://37.media.tumblr.com/f3b7827a1a2f8fd42ff1c6010ff49167/tumblr_n3r0a49fGG1sthzylo1_250.gif"},"image":"http://37.media.tumblr.com/f3b7827a1a2f8fd42ff1c6010ff49167/tumblr_n3r0a49fGG1sthzylo1_250.gif","color":7458112})
 	
     async def cmd_supreme(self, channel):
             """
